@@ -1853,14 +1853,20 @@ Seja conciso — máximo 3 parágrafos.`;
     });
     const data = await res.json();
     typing.remove();
+    if (data.error) {
+      typing.remove();
+      const code = data.error.type || '';
+      if (code === 'authentication_error') addMsg('🔑 API Key inválida. Toque em 🔑 API Key e verifique a chave.', 'ai');
+      else if (code === 'insufficient_quota') addMsg('💳 Créditos da API esgotados. Verifique em console.anthropic.com.', 'ai');
+      else addMsg('❌ Erro API: ' + (data.error.message || code), 'ai');
+      return;
+    }
     const text = data.content?.filter(b => b.type === 'text').map(b => b.text).join('') || 'Não entendi. Tente novamente.';
     addMsg(text, 'ai');
-
-    // Try to auto-register if it looks like a transaction
     tryAutoRegister(msg);
   } catch(e) {
     typing.remove();
-    addMsg('Erro ao conectar. Tente novamente.', 'ai');
+    addMsg('❌ Erro ao conectar: ' + e.message, 'ai');
   }
 }
 
@@ -2038,12 +2044,20 @@ Seja conciso — máximo 3 parágrafos.`;
     });
     const data = await res.json();
     typing.remove();
+    if (data.error) {
+      typing.remove();
+      const code = data.error.type || '';
+      if (code === 'authentication_error') addMsg('🔑 API Key inválida. Toque em 🔑 API Key e verifique a chave.', 'ai');
+      else if (code === 'insufficient_quota') addMsg('💳 Créditos da API esgotados.', 'ai');
+      else addMsg('❌ Erro API: ' + (data.error.message || code), 'ai');
+      return;
+    }
     const reply = data.content?.filter(b => b.type === 'text').map(b => b.text).join('') || 'Não entendi. Tente novamente.';
     addMsg(reply, 'ai');
     tryAutoRegister(text);
   } catch(e) {
     typing.remove();
-    addMsg('Erro ao conectar. Tente novamente.', 'ai');
+    addMsg('❌ Erro: ' + e.message, 'ai');
   }
 }
 

@@ -1,0 +1,2332 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Meu Financeiro</title>
+<link href="https://fonts.googleapis.com/css2?family=Syne:wght@400;600;700;800&family=DM+Mono:wght@300;400;500&display=swap" rel="stylesheet">
+<style>
+  :root {
+    --bg: #0a0a0f;
+    --surface: #111118;
+    --surface2: #1a1a24;
+    --surface3: #22222f;
+    --border: #2a2a3a;
+    --accent: #7c6af7;
+    --accent2: #f7c26a;
+    --accent3: #6af7b8;
+    --danger: #f76a6a;
+    --text: #e8e8f0;
+    --muted: #6b6b80;
+    --font-display: 'Syne', sans-serif;
+    --font-mono: 'DM Mono', monospace;
+  }
+
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+
+  body {
+    background: var(--bg);
+    color: var(--text);
+    font-family: var(--font-display);
+    min-height: 100vh;
+    overflow-x: hidden;
+  }
+
+  /* Noise overlay */
+  body::before {
+    content: '';
+    position: fixed;
+    inset: 0;
+    background-image: url("data:image/svg+xml,%3Csvg viewBox='0 0 256 256' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='noise'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='4' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23noise)' opacity='0.03'/%3E%3C/svg%3E");
+    pointer-events: none;
+    z-index: 9999;
+    opacity: 0.4;
+  }
+
+  /* HEADER */
+  .header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 20px 28px;
+    border-bottom: 1px solid var(--border);
+    background: var(--surface);
+    position: sticky;
+    top: 0;
+    z-index: 100;
+  }
+
+  .logo {
+    font-size: 18px;
+    font-weight: 800;
+    letter-spacing: -0.5px;
+    color: var(--text);
+  }
+  .logo span { color: var(--accent); }
+
+  .nav {
+    display: flex;
+    gap: 4px;
+  }
+
+  .nav-btn {
+    background: none;
+    border: none;
+    color: var(--muted);
+    font-family: var(--font-display);
+    font-size: 13px;
+    font-weight: 600;
+    padding: 8px 14px;
+    border-radius: 8px;
+    cursor: pointer;
+    transition: all 0.2s;
+    letter-spacing: 0.3px;
+  }
+  .nav-btn:hover { color: var(--text); background: var(--surface2); }
+  .nav-btn.active { color: var(--accent); background: rgba(124,106,247,0.12); }
+
+  /* MAIN */
+  .main {
+    padding: 24px 28px;
+    max-width: 1200px;
+    margin: 0 auto;
+  }
+
+  /* PAGE SECTIONS */
+  .page { display: none; }
+  .page.active { display: block; }
+
+  /* CARDS GRID */
+  .grid-2 { display: grid; grid-template-columns: 1fr 1fr; gap: 16px; }
+  .grid-3 { display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 16px; }
+  .grid-auto { display: grid; grid-template-columns: repeat(auto-fill, minmax(280px, 1fr)); gap: 16px; }
+
+  /* WIDGET */
+  .widget {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: 16px;
+    padding: 20px;
+    position: relative;
+    overflow: hidden;
+    animation: fadeUp 0.4s ease both;
+  }
+  .widget::before {
+    content: '';
+    position: absolute;
+    top: 0; left: 0; right: 0;
+    height: 1px;
+    background: linear-gradient(90deg, transparent, rgba(124,106,247,0.4), transparent);
+  }
+
+  @keyframes fadeUp {
+    from { opacity: 0; transform: translateY(12px); }
+    to { opacity: 1; transform: translateY(0); }
+  }
+
+  .widget-label {
+    font-size: 11px;
+    font-weight: 600;
+    letter-spacing: 1.5px;
+    text-transform: uppercase;
+    color: var(--muted);
+    margin-bottom: 12px;
+  }
+
+  .widget-value {
+    font-family: var(--font-mono);
+    font-size: 28px;
+    font-weight: 500;
+    color: var(--text);
+    letter-spacing: -1px;
+  }
+  .widget-value.green { color: var(--accent3); }
+  .widget-value.red { color: var(--danger); }
+  .widget-value.yellow { color: var(--accent2); }
+
+  .widget-sub {
+    font-size: 12px;
+    color: var(--muted);
+    margin-top: 6px;
+    font-family: var(--font-mono);
+  }
+
+  /* PROGRESS BAR */
+  .progress-bar {
+    width: 100%;
+    height: 6px;
+    background: var(--surface3);
+    border-radius: 99px;
+    margin-top: 12px;
+    overflow: hidden;
+  }
+  .progress-fill {
+    height: 100%;
+    border-radius: 99px;
+    transition: width 0.8s cubic-bezier(0.34, 1.56, 0.64, 1);
+  }
+  .progress-fill.safe { background: var(--accent3); }
+  .progress-fill.warn { background: var(--accent2); }
+  .progress-fill.danger { background: var(--danger); }
+
+  /* ACCOUNT / CARD ITEMS */
+  .account-card {
+    background: var(--surface2);
+    border: 1px solid var(--border);
+    border-radius: 12px;
+    padding: 16px;
+    display: flex;
+    align-items: center;
+    gap: 14px;
+    cursor: pointer;
+    transition: all 0.2s;
+  }
+  .account-card:hover { border-color: var(--accent); background: var(--surface3); }
+
+  .account-icon {
+    width: 42px;
+    height: 42px;
+    border-radius: 10px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 18px;
+    flex-shrink: 0;
+  }
+
+  .account-info { flex: 1; }
+  .account-name { font-size: 14px; font-weight: 700; color: var(--text); }
+  .account-type { font-size: 11px; color: var(--muted); margin-top: 2px; font-family: var(--font-mono); }
+  .account-amount {
+    font-family: var(--font-mono);
+    font-size: 15px;
+    font-weight: 500;
+    text-align: right;
+  }
+
+  /* SECTION TITLE */
+  .section-title {
+    font-size: 22px;
+    font-weight: 800;
+    color: var(--text);
+    margin-bottom: 20px;
+    letter-spacing: -0.5px;
+  }
+  .section-title span { color: var(--accent); }
+
+  /* TRANSACTION LIST */
+  .tx-list { display: flex; flex-direction: column; gap: 8px; }
+
+  .tx-item {
+    background: var(--surface2);
+    border: 1px solid var(--border);
+    border-radius: 10px;
+    padding: 12px 16px;
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    animation: fadeUp 0.3s ease both;
+    cursor: pointer;
+    transition: all 0.2s;
+  }
+  .tx-item:hover { border-color: var(--border); background: var(--surface3); }
+
+  .tx-icon {
+    width: 36px;
+    height: 36px;
+    border-radius: 8px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 16px;
+    flex-shrink: 0;
+  }
+
+  .tx-info { flex: 1; }
+  .tx-desc { font-size: 13px; font-weight: 600; color: var(--text); }
+  .tx-meta { font-size: 11px; color: var(--muted); margin-top: 2px; font-family: var(--font-mono); }
+
+  .tx-amount {
+    font-family: var(--font-mono);
+    font-size: 14px;
+    font-weight: 500;
+  }
+  .tx-amount.debit { color: var(--danger); }
+  .tx-amount.credit { color: var(--accent3); }
+
+  /* BADGE */
+  .badge {
+    font-size: 10px;
+    font-weight: 700;
+    letter-spacing: 0.8px;
+    text-transform: uppercase;
+    padding: 3px 8px;
+    border-radius: 99px;
+    font-family: var(--font-mono);
+  }
+  .badge-debit { background: rgba(247,106,106,0.15); color: var(--danger); }
+  .badge-credit-card { background: rgba(124,106,247,0.15); color: var(--accent); }
+  .badge-income { background: rgba(106,247,184,0.15); color: var(--accent3); }
+
+  /* BUTTON */
+  .btn {
+    border: none;
+    border-radius: 10px;
+    padding: 10px 18px;
+    font-family: var(--font-display);
+    font-size: 13px;
+    font-weight: 700;
+    cursor: pointer;
+    transition: all 0.2s;
+    display: inline-flex;
+    align-items: center;
+    gap: 8px;
+  }
+  .btn-primary {
+    background: var(--accent);
+    color: #fff;
+  }
+  .btn-primary:hover { background: #6a58e0; transform: translateY(-1px); }
+  .btn-ghost {
+    background: var(--surface2);
+    color: var(--text);
+    border: 1px solid var(--border);
+  }
+  .btn-ghost:hover { background: var(--surface3); }
+  .btn-danger { background: rgba(247,106,106,0.15); color: var(--danger); border: 1px solid rgba(247,106,106,0.3); }
+  .btn-sm { padding: 7px 12px; font-size: 12px; }
+
+  /* INPUT */
+  .input-group { display: flex; flex-direction: column; gap: 6px; margin-bottom: 14px; }
+  .input-label { font-size: 11px; font-weight: 600; letter-spacing: 1px; text-transform: uppercase; color: var(--muted); }
+  .input-field {
+    background: var(--surface2);
+    border: 1px solid var(--border);
+    border-radius: 10px;
+    padding: 10px 14px;
+    color: var(--text);
+    font-family: var(--font-display);
+    font-size: 14px;
+    outline: none;
+    transition: border-color 0.2s;
+    width: 100%;
+  }
+  .input-field:focus { border-color: var(--accent); }
+  .input-field option { background: var(--surface2); }
+
+  /* MODAL */
+  .modal-overlay {
+    position: fixed;
+    inset: 0;
+    background: rgba(0,0,0,0.7);
+    backdrop-filter: blur(6px);
+    z-index: 1000;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    padding: 20px;
+    opacity: 0;
+    pointer-events: none;
+    transition: opacity 0.2s;
+  }
+  .modal-overlay.open { opacity: 1; pointer-events: all; }
+
+  .modal {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: 20px;
+    padding: 28px;
+    width: 100%;
+    max-width: 480px;
+    transform: translateY(20px);
+    transition: transform 0.3s cubic-bezier(0.34, 1.56, 0.64, 1);
+    max-height: 90vh;
+    overflow-y: auto;
+  }
+  .modal-overlay.open .modal { transform: translateY(0); }
+
+  .modal-title {
+    font-size: 20px;
+    font-weight: 800;
+    margin-bottom: 20px;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+  }
+
+  .modal-close {
+    background: var(--surface2);
+    border: 1px solid var(--border);
+    color: var(--muted);
+    width: 30px;
+    height: 30px;
+    border-radius: 8px;
+    cursor: pointer;
+    font-size: 16px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    transition: all 0.2s;
+  }
+  .modal-close:hover { color: var(--text); background: var(--surface3); }
+
+  .modal-actions { display: flex; gap: 10px; margin-top: 20px; }
+
+  /* CATEGORY CHIP */
+  .cat-chip {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    background: var(--surface2);
+    border: 1px solid var(--border);
+    border-radius: 99px;
+    padding: 5px 12px;
+    font-size: 12px;
+    font-weight: 600;
+    cursor: pointer;
+    transition: all 0.2s;
+  }
+  .cat-chip:hover, .cat-chip.selected { background: rgba(124,106,247,0.15); border-color: var(--accent); color: var(--accent); }
+
+  /* ALERT BOX */
+  .alert {
+    border-radius: 12px;
+    padding: 14px 16px;
+    font-size: 13px;
+    display: flex;
+    align-items: flex-start;
+    gap: 10px;
+    margin-bottom: 12px;
+    line-height: 1.5;
+  }
+  .alert-warn { background: rgba(247,194,106,0.1); border: 1px solid rgba(247,194,106,0.3); color: var(--accent2); }
+  .alert-danger { background: rgba(247,106,106,0.1); border: 1px solid rgba(247,106,106,0.3); color: var(--danger); }
+  .alert-ok { background: rgba(106,247,184,0.1); border: 1px solid rgba(106,247,184,0.3); color: var(--accent3); }
+  .alert-info { background: rgba(124,106,247,0.1); border: 1px solid rgba(124,106,247,0.3); color: var(--accent); }
+
+  /* CALENDAR */
+  .event-item {
+    background: var(--surface2);
+    border: 1px solid var(--border);
+    border-left: 3px solid var(--accent);
+    border-radius: 10px;
+    padding: 12px 16px;
+    display: flex;
+    gap: 14px;
+    align-items: flex-start;
+    animation: fadeUp 0.3s ease both;
+  }
+  .event-time {
+    font-family: var(--font-mono);
+    font-size: 12px;
+    color: var(--accent);
+    min-width: 50px;
+    padding-top: 1px;
+  }
+  .event-title { font-size: 13px; font-weight: 600; color: var(--text); }
+  .event-cal { font-size: 11px; color: var(--muted); margin-top: 2px; }
+
+  /* REPORT CHART */
+  .bar-chart { display: flex; flex-direction: column; gap: 10px; }
+  .bar-row { display: flex; align-items: center; gap: 12px; }
+  .bar-label { font-size: 12px; color: var(--muted); width: 120px; flex-shrink: 0; font-family: var(--font-mono); }
+  .bar-track { flex: 1; height: 8px; background: var(--surface3); border-radius: 99px; overflow: hidden; }
+  .bar-fill { height: 100%; border-radius: 99px; transition: width 1s cubic-bezier(0.34, 1.56, 0.64, 1); }
+  .bar-amount { font-size: 12px; color: var(--text); width: 80px; text-align: right; font-family: var(--font-mono); }
+
+  /* CHAT */
+  .chat-container { display: flex; flex-direction: column; height: calc(100vh - 180px); }
+  .chat-messages { flex: 1; overflow-y: auto; padding: 16px; display: flex; flex-direction: column; gap: 12px; }
+  .chat-input-area {
+    padding: 16px;
+    border-top: 1px solid var(--border);
+    display: flex;
+    gap: 10px;
+    align-items: flex-end;
+    background: var(--surface);
+    border-radius: 0 0 16px 16px;
+  }
+
+  .msg {
+    max-width: 85%;
+    padding: 12px 16px;
+    border-radius: 14px;
+    font-size: 13px;
+    line-height: 1.5;
+    animation: fadeUp 0.3s ease;
+  }
+  .msg-user {
+    background: var(--accent);
+    color: #fff;
+    align-self: flex-end;
+    border-bottom-right-radius: 4px;
+  }
+  .msg-ai {
+    background: var(--surface2);
+    border: 1px solid var(--border);
+    color: var(--text);
+    align-self: flex-start;
+    border-bottom-left-radius: 4px;
+  }
+  .msg-time { font-size: 10px; color: rgba(255,255,255,0.5); margin-top: 4px; font-family: var(--font-mono); }
+  .msg-ai .msg-time { color: var(--muted); }
+
+  .chat-textarea {
+    flex: 1;
+    background: var(--surface2);
+    border: 1px solid var(--border);
+    border-radius: 12px;
+    padding: 12px 14px;
+    color: var(--text);
+    font-family: var(--font-display);
+    font-size: 13px;
+    outline: none;
+    resize: none;
+    min-height: 44px;
+    max-height: 120px;
+    transition: border-color 0.2s;
+  }
+  .chat-textarea:focus { border-color: var(--accent); }
+
+  .typing { display: flex; gap: 4px; align-items: center; padding: 4px; }
+  .typing span {
+    width: 6px; height: 6px;
+    background: var(--accent);
+    border-radius: 50%;
+    animation: bounce 1.2s infinite;
+  }
+  .typing span:nth-child(2) { animation-delay: 0.2s; }
+  .typing span:nth-child(3) { animation-delay: 0.4s; }
+  @keyframes bounce { 0%,60%,100% { transform: translateY(0); } 30% { transform: translateY(-6px); } }
+
+  /* MIC BUTTON */
+  .mic-btn {
+    width: 44px;
+    height: 44px;
+    border-radius: 12px;
+    border: 1px solid var(--border);
+    background: var(--surface2);
+    color: var(--muted);
+    font-size: 18px;
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    flex-shrink: 0;
+    transition: all 0.2s;
+    position: relative;
+  }
+  .mic-btn:hover { color: var(--text); border-color: var(--accent); }
+  .mic-btn.recording {
+    background: rgba(247,106,106,0.15);
+    border-color: var(--danger);
+    color: var(--danger);
+  }
+  .mic-btn.recording::before {
+    content: '';
+    position: absolute;
+    inset: -4px;
+    border-radius: 16px;
+    border: 2px solid var(--danger);
+    animation: pulse-ring 1.2s ease-out infinite;
+  }
+  .mic-btn.recording::after {
+    content: '';
+    position: absolute;
+    inset: -8px;
+    border-radius: 20px;
+    border: 1px solid var(--danger);
+    animation: pulse-ring 1.2s ease-out infinite 0.4s;
+  }
+  @keyframes pulse-ring {
+    0% { opacity: 0.8; transform: scale(1); }
+    100% { opacity: 0; transform: scale(1.3); }
+  }
+
+  /* AUDIO WAVEFORM */
+  .audio-indicator {
+    display: none;
+    align-items: center;
+    gap: 3px;
+    padding: 10px 14px;
+    background: rgba(247,106,106,0.08);
+    border: 1px solid rgba(247,106,106,0.25);
+    border-radius: 12px;
+    flex: 1;
+  }
+  .audio-indicator.active { display: flex; }
+  .audio-indicator span {
+    display: inline-block;
+    width: 3px;
+    border-radius: 99px;
+    background: var(--danger);
+    animation: wave 0.8s ease-in-out infinite;
+  }
+  .audio-indicator span:nth-child(1) { height: 8px; animation-delay: 0s; }
+  .audio-indicator span:nth-child(2) { height: 16px; animation-delay: 0.1s; }
+  .audio-indicator span:nth-child(3) { height: 22px; animation-delay: 0.2s; }
+  .audio-indicator span:nth-child(4) { height: 14px; animation-delay: 0.3s; }
+  .audio-indicator span:nth-child(5) { height: 20px; animation-delay: 0.15s; }
+  .audio-indicator span:nth-child(6) { height: 10px; animation-delay: 0.25s; }
+  .audio-indicator span:nth-child(7) { height: 18px; animation-delay: 0.05s; }
+  .audio-indicator-label {
+    font-size: 12px;
+    color: var(--danger);
+    margin-left: 8px;
+    font-family: var(--font-mono);
+    flex: 1;
+  }
+  @keyframes wave {
+    0%, 100% { transform: scaleY(1); }
+    50% { transform: scaleY(0.4); }
+  }
+
+  /* TRANSCRIBING */
+  .transcribing-msg {
+    display: none;
+    align-items: center;
+    gap: 8px;
+    font-size: 12px;
+    color: var(--accent);
+    font-family: var(--font-mono);
+    padding: 10px 14px;
+    background: rgba(124,106,247,0.08);
+    border: 1px solid rgba(124,106,247,0.2);
+    border-radius: 12px;
+    flex: 1;
+  }
+  .transcribing-msg.active { display: flex; }
+  .transcribing-spinner {
+    width: 14px; height: 14px;
+    border: 2px solid rgba(124,106,247,0.3);
+    border-top-color: var(--accent);
+    border-radius: 50%;
+    animation: spin 0.8s linear infinite;
+    flex-shrink: 0;
+  }
+  @keyframes spin { to { transform: rotate(360deg); } }
+
+  /* AUDIO MESSAGE BUBBLE */
+  .msg-audio-tag {
+    display: inline-flex;
+    align-items: center;
+    gap: 5px;
+    font-size: 10px;
+    background: rgba(255,255,255,0.15);
+    padding: 2px 8px;
+    border-radius: 99px;
+    margin-bottom: 4px;
+    font-family: var(--font-mono);
+  }
+
+  /* SCROLLBAR */
+  ::-webkit-scrollbar { width: 6px; }
+  ::-webkit-scrollbar-track { background: transparent; }
+  ::-webkit-scrollbar-thumb { background: var(--surface3); border-radius: 99px; }
+
+  /* FAB */
+  .fab {
+    position: fixed;
+    bottom: 24px;
+    right: 24px;
+    width: 52px;
+    height: 52px;
+    border-radius: 50%;
+    background: var(--accent);
+    border: none;
+    color: #fff;
+    font-size: 22px;
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    box-shadow: 0 8px 24px rgba(124,106,247,0.4);
+    transition: all 0.2s;
+    z-index: 500;
+  }
+  .fab:hover { transform: scale(1.1); box-shadow: 0 12px 32px rgba(124,106,247,0.5); }
+
+  /* DIVIDER */
+  .divider { height: 1px; background: var(--border); margin: 20px 0; }
+
+  .flex-between { display: flex; align-items: center; justify-content: space-between; }
+  .flex-gap { display: flex; align-items: center; gap: 10px; flex-wrap: wrap; }
+  .mt-8 { margin-top: 8px; }
+  .mt-16 { margin-top: 16px; }
+  .mt-20 { margin-top: 20px; }
+  .mb-16 { margin-bottom: 16px; }
+
+  @media (max-width: 640px) {
+    .grid-2 { grid-template-columns: 1fr; }
+    .grid-3 { grid-template-columns: 1fr; }
+    .main { padding: 16px; }
+    .header { padding: 14px 16px; }
+    .nav-btn { font-size: 11px; padding: 6px 10px; }
+  }
+</style>
+</head>
+<body>
+
+<!-- HEADER -->
+<header class="header">
+  <div class="logo">meu<span>$</span></div>
+  <nav class="nav">
+    <button class="nav-btn active" onclick="showPage('dashboard')">Início</button>
+    <button class="nav-btn" onclick="showPage('contas')">Contas</button>
+    <button class="nav-btn" onclick="showPage('cartoes')">Cartões</button>
+    <button class="nav-btn" onclick="showPage('lancamentos')">Lançamentos</button>
+    <button class="nav-btn" onclick="showPage('agenda')">Agenda</button>
+    <button class="nav-btn" onclick="showPage('assistente')">Assistente</button>
+    <button class="nav-btn" onclick="showPage('relatorios')">Relatórios</button>
+  </nav>
+</header>
+
+<main class="main">
+
+<!-- ===== DASHBOARD ===== -->
+<div id="page-dashboard" class="page active">
+  <div class="flex-between mb-16">
+    <div class="section-title">Visão <span>Geral</span></div>
+    <div class="flex-gap">
+      <span id="month-label" style="font-family:var(--font-mono);font-size:12px;color:var(--muted)"></span>
+    </div>
+  </div>
+
+  <!-- Alerts -->
+  <div id="dashboard-alerts"></div>
+
+  <!-- Summary widgets — row 1: saldo + faturas -->
+  <div class="grid-3" style="margin-bottom:12px">
+    <div class="widget">
+      <div class="widget-label">Saldo em Conta</div>
+      <div class="widget-value green" id="total-saldo">R$ 0,00</div>
+      <div class="widget-sub">Todas as contas</div>
+    </div>
+    <div class="widget">
+      <div class="widget-label">Total das Faturas</div>
+      <div class="widget-value red" id="total-faturas">R$ 0,00</div>
+      <div class="widget-sub" id="sub-faturas">Vencimentos próximos</div>
+    </div>
+    <div class="widget">
+      <div class="widget-label">Saldo Pós-Faturas</div>
+      <div class="widget-value yellow" id="total-disponivel">R$ 0,00</div>
+      <div class="widget-sub">O que sobra após pagar tudo</div>
+    </div>
+  </div>
+
+  <!-- Summary widgets — row 2: gastos do mês breakdown -->
+  <div class="grid-2" style="margin-bottom:16px">
+    <div class="widget">
+      <div class="widget-label">🛍️ Compras Novas — Abril</div>
+      <div class="widget-value red" id="total-gastos">R$ 0,00</div>
+      <div class="widget-sub">O que você comprou este mês</div>
+      <div id="dash-gastos-bar" style="margin-top:12px"></div>
+    </div>
+    <div class="widget">
+      <div class="widget-label">🔁 Parcelas de Meses Anteriores</div>
+      <div class="widget-value" style="color:var(--accent)" id="total-parcelas">R$ 0,00</div>
+      <div class="widget-sub">Caindo na fatura deste mês</div>
+      <div id="dash-parcelas-list" style="margin-top:12px;display:flex;flex-direction:column;gap:6px"></div>
+    </div>
+  </div>
+
+  <div class="grid-2" style="margin-bottom:16px">
+    <!-- Contas resumo -->
+    <div class="widget">
+      <div class="widget-label">Contas Bancárias</div>
+      <div id="dash-contas" style="display:flex;flex-direction:column;gap:8px;margin-top:4px"></div>
+    </div>
+    <!-- Cartões resumo -->
+    <div class="widget">
+      <div class="widget-label">Cartões de Crédito</div>
+      <div id="dash-cartoes" style="display:flex;flex-direction:column;gap:8px;margin-top:4px"></div>
+    </div>
+  </div>
+
+  <!-- Categorias do mês -->
+  <div class="widget" style="margin-bottom:16px">
+    <div class="flex-between mb-16">
+      <div class="widget-label">Gastos por Categoria</div>
+    </div>
+    <div class="bar-chart" id="dash-cats"></div>
+  </div>
+
+  <!-- Próximos eventos -->
+  <div class="widget">
+    <div class="flex-between mb-16">
+      <div class="widget-label">Próximos Compromissos</div>
+      <button class="btn btn-ghost btn-sm" onclick="showPage('agenda');loadAgenda()">Ver todos</button>
+    </div>
+    <div id="dash-eventos" style="display:flex;flex-direction:column;gap:8px">
+      <div style="color:var(--muted);font-size:13px">Carregando agenda...</div>
+    </div>
+  </div>
+</div>
+
+<!-- ===== CONTAS ===== -->
+<div id="page-contas" class="page">
+  <div class="flex-between mb-16">
+    <div class="section-title">Minhas <span>Contas</span></div>
+    <button class="btn btn-primary" onclick="openModal('modal-conta')">+ Nova Conta</button>
+  </div>
+  <div id="contas-list" class="grid-auto"></div>
+
+  <!-- Gastos Recorrentes -->
+  <div class="divider"></div>
+  <div class="flex-between mb-16">
+    <div class="section-title" style="font-size:18px">Gastos <span>Recorrentes</span></div>
+    <button class="btn btn-ghost btn-sm" onclick="openModal('modal-recorrente')">+ Adicionar</button>
+  </div>
+  <div id="recorrentes-list" style="display:flex;flex-direction:column;gap:8px"></div>
+</div>
+
+<!-- ===== CARTÕES ===== -->
+<div id="page-cartoes" class="page">
+  <div class="flex-between mb-16">
+    <div class="section-title">Meus <span>Cartões</span></div>
+    <button class="btn btn-primary" onclick="openModal('modal-cartao')">+ Novo Cartão</button>
+  </div>
+  <div id="cartoes-list" class="grid-auto"></div>
+</div>
+
+<!-- ===== LANÇAMENTOS ===== -->
+<div id="page-lancamentos" class="page">
+  <div class="flex-between mb-16">
+    <div class="section-title"><span>Lançamentos</span></div>
+    <div class="flex-gap">
+      <select class="input-field" style="width:auto;padding:8px 12px;" onchange="filterTx(this.value)" id="filter-select">
+        <option value="all">Todos</option>
+        <option value="debit">Débito</option>
+        <option value="credit_card">Cartão</option>
+        <option value="income">Receita</option>
+      </select>
+      <button class="btn btn-primary" onclick="openModal('modal-lancamento')">+ Lançar</button>
+    </div>
+  </div>
+  <div id="tx-list" class="tx-list"></div>
+</div>
+
+<!-- ===== AGENDA ===== -->
+<div id="page-agenda" class="page">
+  <div class="flex-between mb-16">
+    <div class="section-title">Minha <span>Agenda</span></div>
+    <button class="btn btn-primary btn-sm" onclick="loadAgenda()">↻ Atualizar</button>
+  </div>
+  <div id="agenda-status" class="alert alert-info" style="margin-bottom:16px">
+    <span>📅</span>
+    <span>Conectado ao Google Calendar. Clique em Atualizar para carregar seus eventos.</span>
+  </div>
+  <div id="agenda-list" style="display:flex;flex-direction:column;gap:8px"></div>
+</div>
+
+<!-- ===== ASSISTENTE ===== -->
+<div id="page-assistente" class="page">
+  <div class="section-title mb-16">Assistente <span>Financeiro</span></div>
+  <div style="background:var(--surface);border:1px solid var(--border);border-radius:16px;overflow:hidden">
+    <div class="chat-container">
+      <div class="chat-messages" id="chat-messages">
+        <div class="msg msg-ai">
+          Oi Daniel! 👋 Sou seu assistente financeiro.<br><br>
+          🎙️ <strong>Agora com áudio!</strong> Toque no microfone e me diga o que aconteceu.<br><br>
+          Exemplos do que você pode falar ou digitar:<br>
+          • <em>"Gastei 85 no mercado pago no débito"</em><br>
+          • <em>"Coloquei 200 no C6 crédito no Sam's"</em><br>
+          • <em>"Recebi 5000 de salário no Santander"</em><br>
+          • <em>"Qual meu saldo?"</em> · <em>"Como estão meus gastos?"</em><br><br>
+          Me conta o que aconteceu!
+          <div class="msg-time">agora</div>
+        </div>
+      </div>
+      <div class="chat-input-area">
+        <textarea class="chat-textarea" id="chat-input" placeholder="Digite ou grave um áudio..." rows="1"
+          onkeydown="if(event.key==='Enter'&&!event.shiftKey){event.preventDefault();sendChat()}"></textarea>
+        <div class="audio-indicator" id="audio-indicator">
+          <span></span><span></span><span></span><span></span><span></span><span></span><span></span>
+          <div class="audio-indicator-label">Gravando… toque para parar</div>
+        </div>
+        <div class="transcribing-msg" id="transcribing-msg">
+          <div class="transcribing-spinner"></div>
+          Transcrevendo áudio...
+        </div>
+        <button class="mic-btn" id="mic-btn" onclick="toggleRecording()" title="Gravar áudio">🎙️</button>
+        <button class="btn btn-primary" id="send-btn" onclick="sendChat()">↑</button>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- ===== RELATÓRIOS ===== -->
+<div id="page-relatorios" class="page">
+  <div class="section-title mb-16"><span>Relatórios</span></div>
+
+  <div class="grid-2" style="margin-bottom:16px">
+    <div class="widget">
+      <div class="widget-label">Receitas x Despesas</div>
+      <div id="rel-rx" style="margin-top:8px"></div>
+    </div>
+    <div class="widget">
+      <div class="widget-label">Uso dos Cartões</div>
+      <div id="rel-cards" style="margin-top:8px;display:flex;flex-direction:column;gap:10px"></div>
+    </div>
+  </div>
+
+  <div class="widget" style="margin-bottom:16px">
+    <div class="widget-label">Gastos por Categoria — Mês Atual</div>
+    <div class="bar-chart mt-16" id="rel-cats"></div>
+  </div>
+
+  <div class="widget">
+    <div class="flex-between mb-16">
+      <div class="widget-label">Análise & Recomendações</div>
+    </div>
+    <div id="rel-analise"></div>
+  </div>
+</div>
+
+</main>
+
+<!-- FAB -->
+<button class="fab" onclick="openModal('modal-lancamento')" title="Novo Lançamento">+</button>
+
+<!-- ===== MODALS ===== -->
+
+<!-- Modal: Nova Conta -->
+<div class="modal-overlay" id="modal-conta">
+  <div class="modal">
+    <div class="modal-title">Nova Conta <button class="modal-close" onclick="closeModal('modal-conta')">×</button></div>
+    <div class="input-group">
+      <div class="input-label">Nome</div>
+      <input class="input-field" id="conta-nome" placeholder="Ex: Santander Corrente">
+    </div>
+    <div class="input-group">
+      <div class="input-label">Banco</div>
+      <select class="input-field" id="conta-banco">
+        <option value="santander">🔴 Santander</option>
+        <option value="c6">⚫ C6 Bank</option>
+        <option value="mercadopago">🔵 Mercado Pago</option>
+        <option value="outro">🏦 Outro</option>
+      </select>
+    </div>
+    <div class="input-group">
+      <div class="input-label">Tipo</div>
+      <select class="input-field" id="conta-tipo">
+        <option value="corrente">Conta Corrente</option>
+        <option value="poupanca">Poupança</option>
+        <option value="digital">Conta Digital</option>
+      </select>
+    </div>
+    <div class="input-group">
+      <div class="input-label">Saldo Atual (R$)</div>
+      <input class="input-field" id="conta-saldo" type="number" step="0.01" placeholder="0,00">
+    </div>
+    <div class="modal-actions">
+      <button class="btn btn-primary" onclick="saveConta()" style="flex:1">Salvar</button>
+      <button class="btn btn-ghost" onclick="closeModal('modal-conta')">Cancelar</button>
+    </div>
+  </div>
+</div>
+
+<!-- Modal: Novo Cartão -->
+<div class="modal-overlay" id="modal-cartao">
+  <div class="modal">
+    <div class="modal-title">Novo Cartão <button class="modal-close" onclick="closeModal('modal-cartao')">×</button></div>
+    <div class="input-group">
+      <div class="input-label">Nome do Cartão</div>
+      <input class="input-field" id="cartao-nome" placeholder="Ex: C6 Carbono">
+    </div>
+    <div class="input-group">
+      <div class="input-label">Banco / Emissor</div>
+      <select class="input-field" id="cartao-banco">
+        <option value="mercadopago">🔵 Mercado Pago</option>
+        <option value="sams">🟡 Sam's Club</option>
+        <option value="c6">⚫ C6 Carbono</option>
+        <option value="zaffari">🟢 Zaffari Card</option>
+        <option value="outro">💳 Outro</option>
+      </select>
+    </div>
+    <div class="input-group">
+      <div class="input-label">Limite Total (R$)</div>
+      <input class="input-field" id="cartao-limite" type="number" step="0.01" placeholder="0,00">
+    </div>
+    <div class="input-group">
+      <div class="input-label">Fatura Atual (R$)</div>
+      <input class="input-field" id="cartao-fatura" type="number" step="0.01" placeholder="0,00">
+    </div>
+    <div class="input-group">
+      <div class="input-label">Vencimento da Fatura (dia)</div>
+      <input class="input-field" id="cartao-venc" type="number" min="1" max="31" placeholder="Ex: 10">
+    </div>
+    <div class="modal-actions">
+      <button class="btn btn-primary" onclick="saveCartao()" style="flex:1">Salvar</button>
+      <button class="btn btn-ghost" onclick="closeModal('modal-cartao')">Cancelar</button>
+    </div>
+  </div>
+</div>
+
+<!-- Modal: Lançamento -->
+<div class="modal-overlay" id="modal-lancamento">
+  <div class="modal">
+    <div class="modal-title">Novo Lançamento <button class="modal-close" onclick="closeModal('modal-lancamento')">×</button></div>
+    <div class="input-group">
+      <div class="input-label">Descrição</div>
+      <input class="input-field" id="tx-desc" placeholder="Ex: Mercado, academia, salário...">
+    </div>
+    <div class="input-group">
+      <div class="input-label">Valor (R$)</div>
+      <input class="input-field" id="tx-valor" type="number" step="0.01" placeholder="0,00">
+    </div>
+    <div class="input-group">
+      <div class="input-label">Tipo</div>
+      <select class="input-field" id="tx-tipo" onchange="updateTxAccounts()">
+        <option value="debit">Débito (conta)</option>
+        <option value="credit_card">Crédito (cartão)</option>
+        <option value="income">Receita / Entrada</option>
+      </select>
+    </div>
+    <div class="input-group">
+      <div class="input-label">Conta / Cartão</div>
+      <select class="input-field" id="tx-conta"></select>
+    </div>
+    <div class="input-group">
+      <div class="input-label">Categoria</div>
+      <select class="input-field" id="tx-cat">
+        <option value="alimentacao">🍽️ Alimentação</option>
+        <option value="mercado">🛒 Mercado</option>
+        <option value="transporte">🚗 Transporte</option>
+        <option value="saude">💊 Saúde</option>
+        <option value="lazer">🎮 Lazer</option>
+        <option value="academia">💪 Academia / Fitness</option>
+        <option value="roupas">👕 Roupas</option>
+        <option value="casa">🏠 Casa</option>
+        <option value="escola">📚 Escola / Educação</option>
+        <option value="streaming">📺 Streaming</option>
+        <option value="pokemon">🃏 Pokémon TCG</option>
+        <option value="outros">📦 Outros</option>
+      </select>
+    </div>
+    <div class="input-group">
+      <div class="input-label">Data</div>
+      <input class="input-field" id="tx-data" type="date">
+    </div>
+    <div class="modal-actions">
+      <button class="btn btn-primary" onclick="saveTx()" style="flex:1">Salvar</button>
+      <button class="btn btn-ghost" onclick="closeModal('modal-lancamento')">Cancelar</button>
+    </div>
+  </div>
+</div>
+
+<!-- Modal: Recorrente -->
+<div class="modal-overlay" id="modal-recorrente">
+  <div class="modal">
+    <div class="modal-title">Gasto Recorrente <button class="modal-close" onclick="closeModal('modal-recorrente')">×</button></div>
+    <div class="input-group">
+      <div class="input-label">Descrição</div>
+      <input class="input-field" id="rec-desc" placeholder="Ex: Netflix, Academia, Aluguel...">
+    </div>
+    <div class="input-group">
+      <div class="input-label">Valor (R$)</div>
+      <input class="input-field" id="rec-valor" type="number" step="0.01" placeholder="0,00">
+    </div>
+    <div class="input-group">
+      <div class="input-label">Dia de Vencimento</div>
+      <input class="input-field" id="rec-dia" type="number" min="1" max="31" placeholder="Ex: 5">
+    </div>
+    <div class="input-group">
+      <div class="input-label">Categoria</div>
+      <select class="input-field" id="rec-cat">
+        <option value="streaming">📺 Streaming</option>
+        <option value="academia">💪 Academia</option>
+        <option value="casa">🏠 Casa / Moradia</option>
+        <option value="escola">📚 Escola</option>
+        <option value="saude">💊 Saúde</option>
+        <option value="outros">📦 Outros</option>
+      </select>
+    </div>
+    <div class="modal-actions">
+      <button class="btn btn-primary" onclick="saveRecorrente()" style="flex:1">Salvar</button>
+      <button class="btn btn-ghost" onclick="closeModal('modal-recorrente')">Cancelar</button>
+    </div>
+  </div>
+</div>
+
+<!-- Modal: Conta Detail -->
+<div class="modal-overlay" id="modal-conta-detail">
+  <div class="modal">
+    <div class="modal-title"><span id="detail-title">Conta</span> <button class="modal-close" onclick="closeModal('modal-conta-detail')">×</button></div>
+    <div id="detail-content"></div>
+    <div class="modal-actions">
+      <button class="btn btn-ghost" onclick="closeModal('modal-conta-detail')" style="flex:1">Fechar</button>
+    </div>
+  </div>
+</div>
+
+<script>
+// ===================== STATE =====================
+const STATE = {
+  contas: [],
+  cartoes: [],
+  transacoes: [],
+  recorrentes: [],
+  eventos: [],
+  budgets: {}
+};
+
+// Load from localStorage
+function loadState() {
+  try {
+    const saved = localStorage.getItem('meuf_state');
+    if (saved) {
+      const parsed = JSON.parse(saved);
+      Object.assign(STATE, parsed);
+    }
+  } catch(e) {}
+}
+
+function saveState() {
+  localStorage.setItem('meuf_state', JSON.stringify(STATE));
+}
+
+// ===================== SEED DATA =====================
+function seedIfEmpty() {
+  if (STATE.contas.length === 0) {
+    STATE.contas = [
+      { id: 'c1', nome: 'Santander Corrente', banco: 'santander', tipo: 'corrente', saldo: 0 },
+      { id: 'c2', nome: 'C6 Bank', banco: 'c6', tipo: 'digital', saldo: 0 },
+      { id: 'c3', nome: 'Mercado Pago', banco: 'mercadopago', tipo: 'digital', saldo: 0 },
+    ];
+  }
+  if (STATE.cartoes.length === 0) {
+    STATE.cartoes = [
+      { id: 'k1', nome: 'Mercado Pago', banco: 'mercadopago', limite: 0, fatura: 0, venc: 10 },
+      { id: 'k2', nome: "Sam's Club", banco: 'sams', limite: 0, fatura: 0, venc: 15 },
+      { id: 'k3', nome: 'C6 Carbono', banco: 'c6', limite: 0, fatura: 0, venc: 20 },
+      { id: 'k4', nome: 'Zaffari Card', banco: 'zaffari', limite: 0, fatura: 0, venc: 5 },
+    ];
+  }
+}
+
+// ===================== HELPERS =====================
+const fmt = (v) => new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' }).format(v || 0);
+const now = () => new Date().toISOString().slice(0, 10);
+
+const BANK_ICONS = {
+  santander: { icon: '🔴', color: '#e31b23' },
+  c6: { icon: '⚫', color: '#333' },
+  mercadopago: { icon: '🔵', color: '#0093de' },
+  sams: { icon: '🟡', color: '#f5a623' },
+  zaffari: { icon: '🟢', color: '#3a7d44' },
+  outro: { icon: '🏦', color: '#666' },
+};
+
+const CAT_ICONS = {
+  alimentacao: '🍽️', mercado: '🛒', transporte: '🚗', saude: '💊',
+  lazer: '🎮', academia: '💪', roupas: '👕', casa: '🏠',
+  escola: '📚', streaming: '📺', pokemon: '🃏', outros: '📦'
+};
+
+const CAT_COLORS = ['#7c6af7','#f7c26a','#6af7b8','#f76a6a','#6ab8f7','#f76af7','#aff76a','#f7996a'];
+
+function uid() { return '_' + Math.random().toString(36).slice(2, 9); }
+
+// ===================== NAVIGATION =====================
+function showPage(name) {
+  document.querySelectorAll('.page').forEach(p => p.classList.remove('active'));
+  document.querySelectorAll('.nav-btn').forEach(b => b.classList.remove('active'));
+  document.getElementById('page-' + name).classList.add('active');
+  document.querySelectorAll('.nav-btn').forEach(b => {
+    if (b.getAttribute('onclick').includes("'" + name + "'")) b.classList.add('active');
+  });
+  if (name === 'dashboard') renderDashboard();
+  if (name === 'contas') renderContas();
+  if (name === 'cartoes') renderCartoes();
+  if (name === 'lancamentos') renderTx();
+  if (name === 'agenda') loadAgenda();
+  if (name === 'relatorios') renderRelatorios();
+}
+
+// ===================== MODAL =====================
+function openModal(id) {
+  if (id === 'modal-lancamento') {
+    document.getElementById('tx-data').value = now();
+    updateTxAccounts();
+  }
+  document.getElementById(id).classList.add('open');
+}
+function closeModal(id) { document.getElementById(id).classList.remove('open'); }
+
+document.querySelectorAll('.modal-overlay').forEach(m => {
+  m.addEventListener('click', e => { if (e.target === m) m.classList.remove('open'); });
+});
+
+// ===================== CONTAS =====================
+function saveConta() {
+  const c = {
+    id: uid(),
+    nome: document.getElementById('conta-nome').value.trim() || 'Conta',
+    banco: document.getElementById('conta-banco').value,
+    tipo: document.getElementById('conta-tipo').value,
+    saldo: parseFloat(document.getElementById('conta-saldo').value) || 0
+  };
+  STATE.contas.push(c);
+  saveState();
+  closeModal('modal-conta');
+  renderContas();
+  renderDashboard();
+  ['conta-nome','conta-saldo'].forEach(id => document.getElementById(id).value = '');
+}
+
+function renderContas() {
+  const el = document.getElementById('contas-list');
+  if (!el) return;
+  el.innerHTML = STATE.contas.map(c => {
+    const b = BANK_ICONS[c.banco] || BANK_ICONS.outro;
+    return `<div class="account-card" onclick="showContaDetail('${c.id}')">
+      <div class="account-icon" style="background:${b.color}22">${b.icon}</div>
+      <div class="account-info">
+        <div class="account-name">${c.nome}</div>
+        <div class="account-type">${c.tipo}</div>
+      </div>
+      <div class="account-amount" style="color:${c.saldo>=0?'var(--accent3)':'var(--danger)'}">${fmt(c.saldo)}</div>
+    </div>`;
+  }).join('') || '<div style="color:var(--muted);font-size:13px">Nenhuma conta cadastrada.</div>';
+
+  renderRecorrentes();
+}
+
+function showContaDetail(id) {
+  const c = STATE.contas.find(x => x.id === id);
+  if (!c) return;
+  const b = BANK_ICONS[c.banco] || BANK_ICONS.outro;
+  document.getElementById('detail-title').textContent = c.nome;
+
+  const txs = STATE.transacoes.filter(t => t.conta === id);
+  const gastos = txs.filter(t => t.tipo !== 'income').reduce((a, t) => a + t.valor, 0);
+  const receitas = txs.filter(t => t.tipo === 'income').reduce((a, t) => a + t.valor, 0);
+
+  document.getElementById('detail-content').innerHTML = `
+    <div style="text-align:center;padding:16px 0">
+      <div style="font-size:40px">${b.icon}</div>
+      <div style="font-size:32px;font-family:var(--font-mono);color:${c.saldo>=0?'var(--accent3)':'var(--danger)'};margin-top:8px">${fmt(c.saldo)}</div>
+      <div style="color:var(--muted);font-size:12px;margin-top:4px">${c.tipo}</div>
+    </div>
+    <div class="grid-2" style="margin:16px 0">
+      <div style="text-align:center;padding:12px;background:rgba(106,247,184,0.08);border-radius:10px">
+        <div style="font-size:11px;color:var(--muted)">ENTRADAS</div>
+        <div style="font-family:var(--font-mono);color:var(--accent3);margin-top:4px">${fmt(receitas)}</div>
+      </div>
+      <div style="text-align:center;padding:12px;background:rgba(247,106,106,0.08);border-radius:10px">
+        <div style="font-size:11px;color:var(--muted)">SAÍDAS</div>
+        <div style="font-family:var(--font-mono);color:var(--danger);margin-top:4px">${fmt(gastos)}</div>
+      </div>
+    </div>
+    <div style="display:flex;gap:8px;margin-top:8px">
+      <button class="btn btn-ghost btn-sm" onclick="editSaldo('${id}')" style="flex:1">Atualizar Saldo</button>
+      <button class="btn btn-danger btn-sm" onclick="deleteConta('${id}')">Excluir</button>
+    </div>
+  `;
+  openModal('modal-conta-detail');
+}
+
+function editSaldo(id) {
+  const c = STATE.contas.find(x => x.id === id);
+  if (!c) return;
+  const v = prompt(`Novo saldo para ${c.nome}:`, c.saldo);
+  if (v !== null) {
+    c.saldo = parseFloat(v) || 0;
+    saveState();
+    closeModal('modal-conta-detail');
+    renderContas();
+    renderDashboard();
+  }
+}
+
+function deleteConta(id) {
+  if (!confirm('Excluir esta conta?')) return;
+  STATE.contas = STATE.contas.filter(c => c.id !== id);
+  saveState();
+  closeModal('modal-conta-detail');
+  renderContas();
+  renderDashboard();
+}
+
+// ===================== RECORRENTES =====================
+function saveRecorrente() {
+  const r = {
+    id: uid(),
+    desc: document.getElementById('rec-desc').value.trim() || 'Recorrente',
+    valor: parseFloat(document.getElementById('rec-valor').value) || 0,
+    dia: parseInt(document.getElementById('rec-dia').value) || 1,
+    cat: document.getElementById('rec-cat').value
+  };
+  STATE.recorrentes.push(r);
+  saveState();
+  closeModal('modal-recorrente');
+  renderRecorrentes();
+  ['rec-desc','rec-valor','rec-dia'].forEach(id => document.getElementById(id).value = '');
+}
+
+function renderRecorrentes() {
+  const el = document.getElementById('recorrentes-list');
+  if (!el) return;
+  el.innerHTML = STATE.recorrentes.map(r => `
+    <div class="tx-item">
+      <div class="tx-icon" style="background:rgba(124,106,247,0.12)">${CAT_ICONS[r.cat]||'📦'}</div>
+      <div class="tx-info">
+        <div class="tx-desc">${r.desc}</div>
+        <div class="tx-meta">Todo dia ${r.dia} · ${r.cat}</div>
+      </div>
+      <div style="display:flex;align-items:center;gap:10px">
+        <div class="tx-amount debit">-${fmt(r.valor)}</div>
+        <button class="btn btn-danger btn-sm" onclick="deleteRec('${r.id}')">×</button>
+      </div>
+    </div>
+  `).join('') || '<div style="color:var(--muted);font-size:13px">Nenhum gasto recorrente cadastrado.</div>';
+}
+
+function deleteRec(id) {
+  STATE.recorrentes = STATE.recorrentes.filter(r => r.id !== id);
+  saveState();
+  renderRecorrentes();
+}
+
+// ===================== CARTÕES =====================
+function saveCartao() {
+  const k = {
+    id: uid(),
+    nome: document.getElementById('cartao-nome').value.trim() || 'Cartão',
+    banco: document.getElementById('cartao-banco').value,
+    limite: parseFloat(document.getElementById('cartao-limite').value) || 0,
+    fatura: parseFloat(document.getElementById('cartao-fatura').value) || 0,
+    venc: parseInt(document.getElementById('cartao-venc').value) || 10
+  };
+  STATE.cartoes.push(k);
+  saveState();
+  closeModal('modal-cartao');
+  renderCartoes();
+  renderDashboard();
+  ['cartao-nome','cartao-limite','cartao-fatura','cartao-venc'].forEach(id => document.getElementById(id).value = '');
+}
+
+// ── Modelo de cartão brasileiro ──────────────────────────────────────────
+// Cada transação de crédito tem:
+//   t.valor       = valor da PARCELA mensal
+//   t.totalCompra = valor total da compra (optional, = valor se à vista)
+//   t.parcelas    = número total de parcelas (optional, default 1)
+//   t.parcelaNum  = número desta parcela (optional, default 1)
+//
+// limiteComprometido = soma de (totalCompra - parcelas já pagas * valorParcela)
+//   = soma das parcelas RESTANTES (incluindo futuras) de cada compra
+//
+// faturaMes = parcelas com vencimento no ciclo atual (o que você paga este mês)
+// ─────────────────────────────────────────────────────────────────────────
+
+function getTxCartao(k) {
+  return STATE.transacoes.filter(t => t.conta === k.id && t.tipo === 'credit_card');
+}
+
+// Quanto do limite está comprometido (parcelas restantes de todas as compras)
+function calcLimiteComprometido(k) {
+  // Agrupa por compraId para calcular parcelas restantes
+  const grupos = {};
+  getTxCartao(k).forEach(t => {
+    const gid = t.compraId || t.id; // compraId agrupa parcelas da mesma compra
+    if (!grupos[gid]) grupos[gid] = { parcelas: [], totalCompra: t.totalCompra || t.valor * (t.parcelas || 1), nTotal: t.parcelas || 1 };
+    grupos[gid].parcelas.push(t);
+  });
+  let comprometido = 0;
+  Object.values(grupos).forEach(g => {
+    const pagas = g.parcelas.filter(t => t.paga).length;
+    const valorParcela = g.totalCompra / g.nTotal;
+    const restantes = g.nTotal - pagas;
+    comprometido += valorParcela * restantes;
+  });
+  return comprometido;
+}
+
+// Disponível no cartão = limite - comprometido
+function calcDisponivel(k) {
+  if (k.limite <= 0) return 0;
+  return k.limite - calcLimiteComprometido(k);
+}
+
+// Fatura do ciclo atual (o que será cobrado na próxima fatura)
+function calcFatura(k) {
+  const hoje = new Date();
+  const ano = hoje.getFullYear();
+  const mes = hoje.getMonth();
+  const fechamento = k.fechamento || 29;
+  const fmtD = d => d.toISOString().slice(0,10);
+  const cicloInicio = fmtD(new Date(ano, mes - 1, fechamento + 1));
+  const cicloFim    = fmtD(new Date(ano, mes, fechamento));
+  return getTxCartao(k)
+    .filter(t => t.data >= cicloInicio && t.data <= cicloFim)
+    .reduce((a, t) => a + t.valor, 0);
+}
+
+function renderCartoes() {
+  const el = document.getElementById('cartoes-list');
+  if (!el) return;
+  el.innerHTML = STATE.cartoes.map(k => {
+    const b = BANK_ICONS[k.banco] || BANK_ICONS.outro;
+    const faturaTotal = calcFatura(k);
+    const comprometidoK = calcLimiteComprometido(k);
+    const pct = k.limite > 0 ? Math.min((comprometidoK / k.limite) * 100, 100) : 0;
+    const cls = pct > 80 ? 'danger' : pct > 60 ? 'warn' : 'safe';
+
+    return `<div class="account-card" onclick="showCartaoDetail('${k.id}')">
+      <div class="account-icon" style="background:${b.color}22">${b.icon}</div>
+      <div class="account-info" style="flex:1">
+        <div class="account-name">${k.nome}</div>
+        <div class="account-type">Vence dia ${k.venc}</div>
+        <div class="progress-bar">
+          <div class="progress-fill ${cls}" style="width:${pct}%"></div>
+        </div>
+        <div style="font-size:10px;color:var(--muted);margin-top:4px;font-family:var(--font-mono)">Fatura: ${fmt(faturaTotal)} · Disp: ${fmt(calcDisponivel(k))}</div>
+      </div>
+      <div class="account-amount" style="color:var(--danger);min-width:90px;text-align:right">${fmt(faturaTotal)}</div>
+    </div>`;
+  }).join('') || '<div style="color:var(--muted);font-size:13px">Nenhum cartão cadastrado.</div>';
+}
+
+function showCartaoDetail(id) {
+  const k = STATE.cartoes.find(x => x.id === id);
+  if (!k) return;
+  const b = BANK_ICONS[k.banco] || BANK_ICONS.outro;
+  const faturaTotal = calcFatura(k);
+  const comprometidoK = calcLimiteComprometido(k);
+  const disponivel = calcDisponivel(k);
+  const pct = k.limite > 0 ? Math.min((comprometidoK / k.limite) * 100, 100) : 0;
+  const cls = pct > 80 ? 'danger' : pct > 60 ? 'warn' : 'safe';
+
+  document.getElementById('detail-title').textContent = k.nome;
+  document.getElementById('detail-content').innerHTML = `
+    <div style="text-align:center;padding:16px 0">
+      <div style="font-size:40px">${b.icon}</div>
+      <div style="font-size:28px;font-family:var(--font-mono);color:var(--danger);margin-top:8px">${fmt(faturaTotal)}</div>
+      <div style="color:var(--muted);font-size:12px;margin-top:4px">Fatura · vence dia ${k.venc}</div>
+    </div>
+    <div class="progress-bar" style="height:10px;margin:8px 0"></div>
+    <div style="display:flex;justify-content:space-between;font-size:11px;color:var(--muted);font-family:var(--font-mono);margin-bottom:16px">
+      <span>Comprometido: ${pct.toFixed(0)}%</span><span>Disponível: ${fmt(disponivel)}</span>
+    </div>
+    <div class="grid-2" style="margin:8px 0">
+      <div style="text-align:center;padding:12px;background:rgba(124,106,247,0.08);border-radius:10px">
+        <div style="font-size:11px;color:var(--muted)">LIMITE</div>
+        <div style="font-family:var(--font-mono);color:var(--accent);margin-top:4px">${fmt(k.limite)}</div>
+      </div>
+      <div style="text-align:center;padding:12px;background:rgba(247,106,106,0.08);border-radius:10px">
+        <div style="font-size:11px;color:var(--muted)">FATURA MÊS</div>
+        <div style="font-family:var(--font-mono);color:var(--danger);margin-top:4px">${fmt(faturaTotal)}</div>
+      </div>
+    </div>
+    <div style="display:flex;gap:8px;margin-top:8px">
+      <button class="btn btn-ghost btn-sm" onclick="editFatura('${id}')" style="flex:1">Atualizar Fatura</button>
+      <button class="btn btn-ghost btn-sm" onclick="editLimite('${id}')" style="flex:1">Atualizar Limite</button>
+      <button class="btn btn-danger btn-sm" onclick="deleteCartao('${id}')">×</button>
+    </div>
+  `;
+  openModal('modal-conta-detail');
+}
+
+function editFatura(id) {
+  const k = STATE.cartoes.find(x => x.id === id);
+  const v = prompt(`Fatura atual do ${k.nome}:`, k.fatura);
+  if (v !== null) { k.fatura = parseFloat(v) || 0; saveState(); closeModal('modal-conta-detail'); renderCartoes(); renderDashboard(); }
+}
+function editLimite(id) {
+  const k = STATE.cartoes.find(x => x.id === id);
+  const v = prompt(`Limite do ${k.nome}:`, k.limite);
+  if (v !== null) { k.limite = parseFloat(v) || 0; saveState(); closeModal('modal-conta-detail'); renderCartoes(); renderDashboard(); }
+}
+function deleteCartao(id) {
+  if (!confirm('Excluir cartão?')) return;
+  STATE.cartoes = STATE.cartoes.filter(k => k.id !== id);
+  saveState(); closeModal('modal-conta-detail'); renderCartoes(); renderDashboard();
+}
+
+// ===================== TRANSACTIONS =====================
+function updateTxAccounts() {
+  const tipo = document.getElementById('tx-tipo').value;
+  const sel = document.getElementById('tx-conta');
+  if (tipo === 'credit_card') {
+    sel.innerHTML = STATE.cartoes.map(k => `<option value="${k.id}">${k.nome}</option>`).join('');
+  } else {
+    sel.innerHTML = STATE.contas.map(c => `<option value="${c.id}">${c.nome}</option>`).join('');
+  }
+}
+
+function saveTx() {
+  const t = {
+    id: uid(),
+    desc: document.getElementById('tx-desc').value.trim() || 'Lançamento',
+    valor: parseFloat(document.getElementById('tx-valor').value) || 0,
+    tipo: document.getElementById('tx-tipo').value,
+    conta: document.getElementById('tx-conta').value,
+    cat: document.getElementById('tx-cat').value,
+    data: document.getElementById('tx-data').value || now()
+  };
+  STATE.transacoes.push(t);
+
+  // Update balances
+  if (t.tipo === 'debit') {
+    const c = STATE.contas.find(x => x.id === t.conta);
+    if (c) c.saldo -= t.valor;
+  } else if (t.tipo === 'income') {
+    const c = STATE.contas.find(x => x.id === t.conta);
+    if (c) c.saldo += t.valor;
+  }
+
+  saveState();
+  closeModal('modal-lancamento');
+  renderDashboard();
+  renderTx();
+  ['tx-desc','tx-valor'].forEach(id => document.getElementById(id).value = '');
+}
+
+function renderTx(filter = 'all') {
+  const el = document.getElementById('tx-list');
+  if (!el) return;
+  let txs = [...STATE.transacoes].sort((a,b) => b.data.localeCompare(a.data));
+  if (filter !== 'all') txs = txs.filter(t => t.tipo === filter);
+
+  el.innerHTML = txs.map((t, i) => {
+    const isIncome = t.tipo === 'income';
+    const isCard = t.tipo === 'credit_card';
+    const acct = isCard
+      ? STATE.cartoes.find(k => k.id === t.conta)
+      : STATE.contas.find(c => c.id === t.conta);
+    const acctName = acct ? acct.nome : '—';
+    const badge = isIncome ? '<span class="badge badge-income">Receita</span>'
+                : isCard   ? '<span class="badge badge-credit-card">Crédito</span>'
+                           : '<span class="badge badge-debit">Débito</span>';
+    return `<div class="tx-item" style="animation-delay:${i*0.03}s">
+      <div class="tx-icon" style="background:rgba(124,106,247,0.1)">${CAT_ICONS[t.cat]||'📦'}</div>
+      <div class="tx-info">
+        <div class="tx-desc">${t.desc}</div>
+        <div class="tx-meta">${t.data} · ${acctName} · ${badge}</div>
+      </div>
+      <div class="tx-amount ${isIncome?'credit':'debit'}">${isIncome?'+':'-'}${fmt(t.valor)}</div>
+    </div>`;
+  }).join('') || '<div style="color:var(--muted);font-size:13px">Nenhum lançamento ainda.</div>';
+}
+
+function filterTx(val) { renderTx(val); }
+
+// ===================== DASHBOARD =====================
+function renderDashboard() {
+  const d = new Date();
+  document.getElementById('month-label').textContent = d.toLocaleDateString('pt-BR', { month: 'long', year: 'numeric' });
+
+  // Totals
+  const totalSaldo = STATE.contas.reduce((a, c) => a + c.saldo, 0);
+  const curMonth = d.toISOString().slice(0, 7);
+  const txMes = STATE.transacoes.filter(t => t.data.startsWith(curMonth));
+  const recorrentesTotal = STATE.recorrentes.reduce((a, r) => a + r.valor, 0);
+  // Comprometido = faturas abertas de todos os cartões + recorrentes pendentes
+  const totalFatura = STATE.cartoes.reduce((a, k) => a + calcFatura(k), 0);
+  const comprometido = totalFatura + recorrentesTotal;
+  const disponivel = totalSaldo - comprometido;
+  // Gastos do mês = apenas compras NOVAS (1ª parcela ou à vista), débito e receita do mês
+  // Exclui parcelas 2,3,4... de compras feitas em meses anteriores
+  const gastosMes = txMes.filter(t => {
+    if (t.tipo === 'income') return false;
+    if (t.tipo === 'debit') return true;
+    // crédito: só conta se é compra nova (parcelaNum 1 ou não tem parcelas)
+    return !t.parcelaNum || t.parcelaNum === 1;
+  }).reduce((a, t) => a + (t.totalCompra || t.valor), 0);
+
+  // Parcelas de compras anteriores caindo este mês
+  const parcelasMes = txMes.filter(t => t.tipo === 'credit_card' && t.parcelaNum && t.parcelaNum > 1);
+  const totalParcelasMes = parcelasMes.reduce((a, t) => a + t.valor, 0);
+
+  // Total faturas = fatura aberta de cada cartão
+  const totalFaturas = STATE.cartoes.reduce((a, k) => a + calcFatura(k), 0);
+
+  document.getElementById('total-saldo').textContent = fmt(totalSaldo);
+  document.getElementById('total-gastos').textContent = fmt(gastosMes);
+  document.getElementById('total-faturas').textContent = fmt(totalFaturas);
+  document.getElementById('total-parcelas').textContent = fmt(totalParcelasMes);
+  document.getElementById('total-disponivel').textContent = fmt(disponivel);
+
+  // Sub-label faturas: lista cartões com fatura
+  const fatLabels = STATE.cartoes.filter(k => calcFatura(k) > 0)
+    .map(k => `${k.nome} ${fmt(calcFatura(k))}`).join(' · ');
+  const subFat = document.getElementById('sub-faturas');
+  if (subFat) subFat.textContent = fatLabels || 'Nenhuma fatura aberta';
+
+  // Gastos novas bar por categoria
+  const gastosByCat = {};
+  txMes.filter(t => t.tipo !== 'income' && (!t.parcelaNum || t.parcelaNum === 1))
+    .forEach(t => { gastosByCat[t.cat] = (gastosByCat[t.cat]||0) + (t.totalCompra||t.valor); });
+  const sortedCats = Object.entries(gastosByCat).sort((a,b) => b[1]-a[1]).slice(0,4);
+  const maxCat = sortedCats[0]?.[1] || 1;
+  const gastoBarEl = document.getElementById('dash-gastos-bar');
+  if (gastoBarEl) {
+    gastoBarEl.innerHTML = sortedCats.map(([cat,val],i) => `
+      <div class="bar-row">
+        <div class="bar-label" style="width:90px;font-size:11px">${CAT_ICONS[cat]||'📦'} ${cat}</div>
+        <div class="bar-track"><div class="bar-fill" style="width:${(val/maxCat*100).toFixed(0)}%;background:${CAT_COLORS[i%CAT_COLORS.length]}"></div></div>
+        <div class="bar-amount" style="width:70px;font-size:11px">${fmt(val)}</div>
+      </div>`).join('') || '<div style="color:var(--muted);font-size:12px">Sem compras novas.</div>';
+  }
+
+  // Parcelas antigas list
+  const parcelasEl = document.getElementById('dash-parcelas-list');
+  if (parcelasEl) {
+    // Group by compraId, show one line per group
+    const grupos = {};
+    parcelasMes.forEach(t => {
+      const gid = t.compraId || t.id;
+      if (!grupos[gid]) grupos[gid] = { desc: t.desc.replace(/\s*\(\d+\/\d+\)/, ''), valor: 0, info: t };
+      grupos[gid].valor += t.valor;
+    });
+    parcelasEl.innerHTML = Object.values(grupos).map(g => `
+      <div style="display:flex;justify-content:space-between;align-items:center;padding:6px 0;border-bottom:1px solid var(--border)">
+        <div>
+          <div style="font-size:12px;font-weight:600">${g.desc}</div>
+          <div style="font-size:10px;color:var(--muted);font-family:var(--font-mono)">${g.info.parcelaNum}/${g.info.parcelas} parcela</div>
+        </div>
+        <div style="font-family:var(--font-mono);font-size:12px;color:var(--accent)">${fmt(g.valor)}</div>
+      </div>`).join('') || '<div style="color:var(--muted);font-size:12px">Nenhuma parcela antiga.</div>';
+  }
+
+  // Alerts
+  const alertsEl = document.getElementById('dashboard-alerts');
+  let alerts = '';
+  if (totalSaldo > 0 && comprometido > totalSaldo * 0.9) alerts += `<div class="alert alert-warn">⚡ Atenção: faturas comprometem mais de 90% do seu saldo. Fique de olho.</div>`;
+  else if (totalSaldo > 0) alerts += `<div class="alert alert-ok">✅ Finanças sob controle! Saldo livre: ${fmt(disponivel)}</div>`;
+  STATE.cartoes.forEach(k => {
+    const fatTotal = calcFatura(k);
+    const pct = k.limite > 0 ? (fatTotal/k.limite)*100 : 0;
+    if (pct > 80) alerts += `<div class="alert alert-danger">💳 ${k.nome}: ${pct.toFixed(0)}% do limite usado! (${fmt(fatTotal)} / ${fmt(k.limite)})</div>`;
+    else if (pct > 60) alerts += `<div class="alert alert-warn">💳 ${k.nome}: ${pct.toFixed(0)}% do limite usado. Atenção!</div>`;
+  });
+  alertsEl.innerHTML = alerts;
+
+  // Contas mini
+  document.getElementById('dash-contas').innerHTML = STATE.contas.map(c => {
+    const b = BANK_ICONS[c.banco]||BANK_ICONS.outro;
+    return `<div style="display:flex;align-items:center;justify-content:space-between;padding:8px 0;border-bottom:1px solid var(--border)">
+      <div style="display:flex;align-items:center;gap:8px"><span>${b.icon}</span><span style="font-size:13px">${c.nome}</span></div>
+      <span style="font-family:var(--font-mono);font-size:13px;color:${c.saldo>=0?'var(--accent3)':'var(--danger)'}">${fmt(c.saldo)}</span>
+    </div>`;
+  }).join('') || '<div style="color:var(--muted);font-size:12px">Adicione contas em "Contas"</div>';
+
+  // Cartões mini
+  document.getElementById('dash-cartoes').innerHTML = STATE.cartoes.map(k => {
+    const b = BANK_ICONS[k.banco]||BANK_ICONS.outro;
+    const fatTotal = calcFatura(k);
+    return `<div style="display:flex;align-items:center;justify-content:space-between;padding:8px 0;border-bottom:1px solid var(--border)">
+      <div style="display:flex;align-items:center;gap:8px"><span>${b.icon}</span><span style="font-size:13px">${k.nome}</span></div>
+      <span style="font-family:var(--font-mono);font-size:13px;color:var(--danger)">${fmt(fatTotal)}</span>
+    </div>`;
+  }).join('') || '<div style="color:var(--muted);font-size:12px">Adicione cartões em "Cartões"</div>';
+
+  // Categories chart
+  const txMesNovas = txMes.filter(t => !t.parcelaNum || t.parcelaNum === 1);
+  renderCatChart('dash-cats', txMesNovas);
+}
+
+function renderCatChart(elId, txs) {
+  const el = document.getElementById(elId);
+  if (!el) return;
+  const cats = {};
+  txs.filter(t => t.tipo !== 'income').forEach(t => {
+    cats[t.cat] = (cats[t.cat] || 0) + t.valor;
+  });
+  const sorted = Object.entries(cats).sort((a,b) => b[1]-a[1]);
+  const max = sorted[0]?.[1] || 1;
+  el.innerHTML = sorted.length === 0
+    ? '<div style="color:var(--muted);font-size:12px">Sem gastos registrados ainda.</div>'
+    : sorted.map(([cat, val], i) => `
+      <div class="bar-row">
+        <div class="bar-label">${CAT_ICONS[cat]||'📦'} ${cat}</div>
+        <div class="bar-track"><div class="bar-fill" style="width:${(val/max*100).toFixed(0)}%;background:${CAT_COLORS[i%CAT_COLORS.length]}"></div></div>
+        <div class="bar-amount">${fmt(val)}</div>
+      </div>`).join('');
+}
+
+// ===================== AGENDA (Google Calendar) =====================
+async function loadAgenda() {
+  const el = document.getElementById('agenda-list');
+  const dashEl = document.getElementById('dash-eventos');
+  if (el) el.innerHTML = '<div style="color:var(--muted);font-size:13px">Carregando eventos...</div>';
+
+  try {
+    const response = await fetch("https://api.anthropic.com/v1/messages", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({
+        model: "claude-sonnet-4-20250514",
+        max_tokens: 1000,
+        messages: [{
+          role: "user",
+          content: `Use o Google Calendar para listar os eventos dos próximos 14 dias do usuário.
+Responda APENAS com um JSON array no formato:
+[{"titulo":"...","data":"DD/MM","hora":"HH:MM","calendario":"..."}]
+Se não houver eventos, retorne [].
+Inclua no máximo 10 eventos. Ordene por data.`
+        }],
+        mcp_servers: [{
+          type: "url",
+          url: "https://gcal.mcp.claude.com/mcp",
+          name: "google-calendar"
+        }]
+      })
+    });
+
+    const data = await response.json();
+    let eventos = [];
+
+    for (const block of data.content) {
+      if (block.type === 'text' && block.text) {
+        try {
+          const clean = block.text.replace(/```json|```/g, '').trim();
+          const arr = JSON.parse(clean);
+          if (Array.isArray(arr)) { eventos = arr; break; }
+        } catch(e) {}
+      }
+      if (block.type === 'mcp_tool_result') {
+        try {
+          const txt = block.content?.[0]?.text || '';
+          const clean = txt.replace(/```json|```/g, '').trim();
+          const arr = JSON.parse(clean);
+          if (Array.isArray(arr)) { eventos = arr; break; }
+        } catch(e) {}
+      }
+    }
+
+    STATE.eventos = eventos;
+    renderEventos(el, eventos);
+    if (dashEl) renderEventos(dashEl, eventos.slice(0, 3));
+
+    const status = document.getElementById('agenda-status');
+    if (status) status.innerHTML = `<span>✅</span><span>${eventos.length} evento(s) carregados</span>`;
+
+  } catch(e) {
+    const msg = '<div style="color:var(--muted);font-size:13px">Não foi possível carregar a agenda. Verifique a conexão com o Google Calendar.</div>';
+    if (el) el.innerHTML = msg;
+    if (dashEl) dashEl.innerHTML = msg;
+  }
+}
+
+function renderEventos(el, eventos) {
+  if (!el) return;
+  if (!eventos || eventos.length === 0) {
+    el.innerHTML = '<div style="color:var(--muted);font-size:13px">Nenhum evento nos próximos dias.</div>';
+    return;
+  }
+  el.innerHTML = eventos.map((e, i) => `
+    <div class="event-item" style="animation-delay:${i*0.05}s">
+      <div class="event-time">${e.hora||'dia'}<br>${e.data||''}</div>
+      <div>
+        <div class="event-title">${e.titulo||'Evento'}</div>
+        <div class="event-cal">${e.calendario||''}</div>
+      </div>
+    </div>
+  `).join('');
+}
+
+// ===================== RELATÓRIOS =====================
+function renderRelatorios() {
+  const curMonth = new Date().toISOString().slice(0, 7);
+  const txMes = STATE.transacoes.filter(t => t.data.startsWith(curMonth));
+  const receitas = txMes.filter(t => t.tipo === 'income').reduce((a,t) => a+t.valor, 0);
+  const despesas = txMes.filter(t => {
+    if (t.tipo === 'income') return false;
+    if (t.tipo === 'debit') return true;
+    return !t.parcelaNum || t.parcelaNum === 1;
+  }).reduce((a,t) => a + (t.totalCompra || t.valor), 0);
+  const saldo = receitas - despesas;
+
+  // Rx chart
+  const rxEl = document.getElementById('rel-rx');
+  if (rxEl) {
+    const maxRx = Math.max(receitas, despesas, 1);
+    rxEl.innerHTML = `
+      <div class="bar-row">
+        <div class="bar-label">🟢 Receitas</div>
+        <div class="bar-track"><div class="bar-fill" style="width:${(receitas/maxRx*100).toFixed(0)}%;background:var(--accent3)"></div></div>
+        <div class="bar-amount">${fmt(receitas)}</div>
+      </div>
+      <div class="bar-row">
+        <div class="bar-label">🔴 Despesas</div>
+        <div class="bar-track"><div class="bar-fill" style="width:${(despesas/maxRx*100).toFixed(0)}%;background:var(--danger)"></div></div>
+        <div class="bar-amount">${fmt(despesas)}</div>
+      </div>
+      <div style="margin-top:12px;font-family:var(--font-mono);font-size:13px;color:${saldo>=0?'var(--accent3)':'var(--danger)'}">
+        ${saldo>=0?'Sobra':'Déficit'}: ${fmt(Math.abs(saldo))}
+      </div>`;
+  }
+
+  // Cards usage
+  const cardsEl = document.getElementById('rel-cards');
+  if (cardsEl) {
+    cardsEl.innerHTML = STATE.cartoes.map(k => {
+      const fatTotal = calcFatura(k);
+      const pct = k.limite > 0 ? Math.min((fatTotal/k.limite)*100, 100) : 0;
+      const cls = pct > 80 ? 'danger' : pct > 60 ? 'warn' : 'safe';
+      return `<div>
+        <div style="display:flex;justify-content:space-between;font-size:12px;margin-bottom:4px">
+          <span>${k.nome}</span><span style="font-family:var(--font-mono)">${pct.toFixed(0)}%</span>
+        </div>
+        <div class="progress-bar"><div class="progress-fill ${cls}" style="width:${pct}%"></div></div>
+      </div>`;
+    }).join('') || '<div style="color:var(--muted);font-size:12px">Nenhum cartão cadastrado.</div>';
+  }
+
+  // Cat chart
+  const txMesRelNovas = txMes.filter(t => !t.parcelaNum || t.parcelaNum === 1);
+  renderCatChart('rel-cats', txMesRelNovas);
+
+  // Analise
+  const analEl = document.getElementById('rel-analise');
+  if (analEl) {
+    let recs = [];
+    STATE.cartoes.forEach(k => {
+      const pct = k.limite > 0 ? (calcFatura(k)/k.limite)*100 : 0;
+      if (pct > 80) recs.push(`<div class="alert alert-danger">💳 <strong>${k.nome}</strong>: limite quase esgotado (${pct.toFixed(0)}%). Evite novos gastos neste cartão.</div>`);
+    });
+    if (despesas > receitas) recs.push(`<div class="alert alert-danger">📉 Você gastou mais do que recebeu este mês. Revise categorias como lazer e alimentação.</div>`);
+    if (receitas === 0) recs.push(`<div class="alert alert-info">💡 Cadastre suas receitas para ter uma análise completa.</div>`);
+    if (recs.length === 0 && receitas > 0) recs.push(`<div class="alert alert-ok">🎉 Mês positivo! Continue controlando os gastos.</div>`);
+    analEl.innerHTML = recs.join('');
+  }
+}
+
+// ===================== CHAT ASSISTENTE (Claude API) =====================
+async function sendChat() {
+  const input = document.getElementById('chat-input');
+  const msg = input.value.trim();
+  if (!msg) return;
+  input.value = '';
+
+  addMsg(msg, 'user');
+
+  // Build context
+  const ctx = `Você é o assistente financeiro pessoal do Daniel. Responda sempre em português brasileiro, de forma direta e amigável.
+
+CONTAS:
+${JSON.stringify(STATE.contas)}
+
+CARTÕES:
+${JSON.stringify(STATE.cartoes)}
+
+TRANSAÇÕES RECENTES (últimas 20):
+${JSON.stringify(STATE.transacoes.slice(-20))}
+
+RECORRENTES:
+${JSON.stringify(STATE.recorrentes)}
+
+Se o Daniel mencionar um gasto, extrai: descrição, valor, conta/cartão, tipo (débito/crédito/receita), categoria.
+Se for um gasto, responda confirmando o registro e dê um feedback rápido sobre a saúde financeira dele.
+Se perguntar sobre saldos/gastos, analise os dados e responda com clareza.
+Se estiver passando dos limites, avise de forma clara mas sem alarmismo.
+Seja conciso — máximo 3 parágrafos.`;
+
+  const typing = addTyping();
+
+  try {
+    const res = await fetch("https://api.anthropic.com/v1/messages", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({
+        model: "claude-sonnet-4-20250514",
+        max_tokens: 1000,
+        system: ctx,
+        messages: [{ role: "user", content: msg }]
+      })
+    });
+    const data = await res.json();
+    typing.remove();
+    const text = data.content?.filter(b => b.type === 'text').map(b => b.text).join('') || 'Não entendi. Tente novamente.';
+    addMsg(text, 'ai');
+
+    // Try to auto-register if it looks like a transaction
+    tryAutoRegister(msg);
+  } catch(e) {
+    typing.remove();
+    addMsg('Erro ao conectar. Tente novamente.', 'ai');
+  }
+}
+
+function tryAutoRegister(msg) {
+  // Simple pattern matching for common phrases
+  const lower = msg.toLowerCase();
+  const valorMatch = msg.match(/(\d+[\.,]?\d*)\s*(reais?|r\$)?/i);
+  if (!valorMatch) return;
+  const valor = parseFloat(valorMatch[1].replace(',','.'));
+  if (!valor) return;
+
+  let tipo = 'debit', cat = 'outros';
+  if (lower.includes('recebi') || lower.includes('salário') || lower.includes('entrada')) tipo = 'income';
+  else if (lower.includes('crédito') || lower.includes('cartão')) tipo = 'credit_card';
+
+  if (lower.includes('mercado') || lower.includes('supermercado')) cat = 'mercado';
+  else if (lower.includes('academia') || lower.includes('treino')) cat = 'academia';
+  else if (lower.includes('transporte') || lower.includes('uber') || lower.includes('posto')) cat = 'transporte';
+  else if (lower.includes('restaurante') || lower.includes('lanche') || lower.includes('pizza')) cat = 'alimentacao';
+  else if (lower.includes('pokemon')) cat = 'pokemon';
+
+  const conta = tipo === 'credit_card' ? (STATE.cartoes[0]?.id || '') : (STATE.contas[0]?.id || '');
+  if (!conta) return;
+
+  const t = { id: uid(), desc: msg.slice(0, 60), valor, tipo, conta, cat, data: now() };
+  STATE.transacoes.push(t);
+  if (tipo === 'debit') { const c = STATE.contas.find(x=>x.id===conta); if(c) c.saldo -= valor; }
+  if (tipo === 'income') { const c = STATE.contas.find(x=>x.id===conta); if(c) c.saldo += valor; }
+  saveState();
+}
+
+function addMsg(text, who) {
+  const el = document.getElementById('chat-messages');
+  const d = document.createElement('div');
+  d.className = `msg msg-${who}`;
+  d.innerHTML = text.replace(/\n/g, '<br>') + `<div class="msg-time">${new Date().toLocaleTimeString('pt-BR',{hour:'2-digit',minute:'2-digit'})}</div>`;
+  el.appendChild(d);
+  el.scrollTop = el.scrollHeight;
+  return d;
+}
+
+function addTyping() {
+  const el = document.getElementById('chat-messages');
+  const d = document.createElement('div');
+  d.className = 'msg msg-ai';
+  d.innerHTML = '<div class="typing"><span></span><span></span><span></span></div>';
+  el.appendChild(d);
+  el.scrollTop = el.scrollHeight;
+  return d;
+}
+
+// ===================== AUDIO RECORDING =====================
+let mediaRecorder = null;
+let audioChunks = [];
+let isRecording = false;
+let recordingStream = null;
+
+async function toggleRecording() {
+  if (isRecording) {
+    stopRecording();
+  } else {
+    await startRecording();
+  }
+}
+
+async function startRecording() {
+  try {
+    recordingStream = await navigator.mediaDevices.getUserMedia({ audio: true });
+  } catch(e) {
+    addMsg('❌ Permissão de microfone negada. Verifique as configurações do navegador.', 'ai');
+    return;
+  }
+
+  audioChunks = [];
+  // Prefer webm/opus, fallback to whatever is supported
+  const mimeType = MediaRecorder.isTypeSupported('audio/webm;codecs=opus')
+    ? 'audio/webm;codecs=opus'
+    : MediaRecorder.isTypeSupported('audio/webm')
+    ? 'audio/webm'
+    : 'audio/ogg';
+
+  mediaRecorder = new MediaRecorder(recordingStream, { mimeType });
+  mediaRecorder.ondataavailable = e => { if (e.data.size > 0) audioChunks.push(e.data); };
+  mediaRecorder.onstop = () => processAudio(mimeType);
+  mediaRecorder.start(100);
+
+  isRecording = true;
+  setRecordingUI(true);
+}
+
+function stopRecording() {
+  if (mediaRecorder && isRecording) {
+    mediaRecorder.stop();
+    recordingStream.getTracks().forEach(t => t.stop());
+    isRecording = false;
+    setRecordingUI(false);
+    setTranscribingUI(true);
+  }
+}
+
+function setRecordingUI(recording) {
+  const micBtn = document.getElementById('mic-btn');
+  const textarea = document.getElementById('chat-input');
+  const indicator = document.getElementById('audio-indicator');
+  const sendBtn = document.getElementById('send-btn');
+
+  micBtn.classList.toggle('recording', recording);
+  micBtn.textContent = recording ? '⏹️' : '🎙️';
+  micBtn.title = recording ? 'Parar gravação' : 'Gravar áudio';
+  textarea.style.display = recording ? 'none' : '';
+  indicator.classList.toggle('active', recording);
+  sendBtn.style.display = recording ? 'none' : '';
+}
+
+function setTranscribingUI(transcribing) {
+  const transcribingEl = document.getElementById('transcribing-msg');
+  const micBtn = document.getElementById('mic-btn');
+  const sendBtn = document.getElementById('send-btn');
+
+  transcribingEl.classList.toggle('active', transcribing);
+  micBtn.style.display = transcribing ? 'none' : '';
+  sendBtn.style.display = transcribing ? 'none' : '';
+}
+
+async function processAudio(mimeType) {
+  const blob = new Blob(audioChunks, { type: mimeType });
+
+  // Convert to base64
+  const base64 = await new Promise((resolve, reject) => {
+    const reader = new FileReader();
+    reader.onload = () => resolve(reader.result.split(',')[1]);
+    reader.onerror = reject;
+    reader.readAsDataURL(blob);
+  });
+
+  try {
+    // Use Claude API with audio input for transcription + understanding
+    const response = await fetch("https://api.anthropic.com/v1/messages", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({
+        model: "claude-sonnet-4-20250514",
+        max_tokens: 500,
+        messages: [{
+          role: "user",
+          content: [
+            {
+              type: "text",
+              text: `Transcreva exatamente o que foi dito neste áudio em português brasileiro. Retorne APENAS a transcrição literal, sem comentários.`
+            },
+            {
+              type: "document",
+              source: {
+                type: "base64",
+                media_type: mimeType.split(';')[0],
+                data: base64
+              }
+            }
+          ]
+        }]
+      })
+    });
+
+    const data = await response.json();
+    const transcription = data.content?.filter(b => b.type === 'text').map(b => b.text).join('').trim();
+
+    setTranscribingUI(false);
+
+    if (transcription && !transcription.toLowerCase().includes('não foi possível') && !transcription.toLowerCase().includes('cannot')) {
+      // Show transcription in textarea and in chat as audio message
+      const textarea = document.getElementById('chat-input');
+      textarea.value = transcription;
+      textarea.style.display = '';
+      document.getElementById('mic-btn').style.display = '';
+      document.getElementById('send-btn').style.display = '';
+
+      // Show audio bubble preview
+      addAudioMsg(transcription);
+
+      // Auto-send
+      await sendChatWithText(transcription);
+      textarea.value = '';
+    } else {
+      // Fallback: Claude couldn't process audio natively, use text input
+      setTranscribingUI(false);
+      const textarea = document.getElementById('chat-input');
+      textarea.style.display = '';
+      document.getElementById('mic-btn').style.display = '';
+      document.getElementById('send-btn').style.display = '';
+      addMsg('⚠️ Não consegui transcrever o áudio. Por enquanto, tente digitar. Em breve o suporte a áudio estará completo!', 'ai');
+    }
+  } catch(e) {
+    setTranscribingUI(false);
+    const textarea = document.getElementById('chat-input');
+    textarea.style.display = '';
+    document.getElementById('mic-btn').style.display = '';
+    document.getElementById('send-btn').style.display = '';
+    addMsg('❌ Erro ao processar áudio. Tente novamente ou digite sua mensagem.', 'ai');
+  }
+}
+
+function addAudioMsg(transcription) {
+  const el = document.getElementById('chat-messages');
+  const d = document.createElement('div');
+  d.className = 'msg msg-user';
+  d.innerHTML = `<div class="msg-audio-tag">🎙️ áudio</div><br>${transcription}<div class="msg-time">${new Date().toLocaleTimeString('pt-BR',{hour:'2-digit',minute:'2-digit'})}</div>`;
+  el.appendChild(d);
+  el.scrollTop = el.scrollHeight;
+}
+
+async function sendChatWithText(text) {
+  const ctx = `Você é o assistente financeiro pessoal do Daniel. Responda sempre em português brasileiro, de forma direta e amigável.
+
+CONTAS:
+${JSON.stringify(STATE.contas)}
+
+CARTÕES:
+${JSON.stringify(STATE.cartoes)}
+
+TRANSAÇÕES RECENTES (últimas 20):
+${JSON.stringify(STATE.transacoes.slice(-20))}
+
+RECORRENTES:
+${JSON.stringify(STATE.recorrentes)}
+
+Se o Daniel mencionar um gasto, extrai: descrição, valor, conta/cartão, tipo (débito/crédito/receita), categoria.
+Se for um gasto, responda confirmando o registro e dê um feedback rápido sobre a saúde financeira dele.
+Se perguntar sobre saldos/gastos, analise os dados e responda com clareza.
+Se estiver passando dos limites, avise de forma clara mas sem alarmismo.
+Seja conciso — máximo 3 parágrafos.`;
+
+  const typing = addTyping();
+  try {
+    const res = await fetch("https://api.anthropic.com/v1/messages", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({
+        model: "claude-sonnet-4-20250514",
+        max_tokens: 1000,
+        system: ctx,
+        messages: [{ role: "user", content: text }]
+      })
+    });
+    const data = await res.json();
+    typing.remove();
+    const reply = data.content?.filter(b => b.type === 'text').map(b => b.text).join('') || 'Não entendi. Tente novamente.';
+    addMsg(reply, 'ai');
+    tryAutoRegister(text);
+  } catch(e) {
+    typing.remove();
+    addMsg('Erro ao conectar. Tente novamente.', 'ai');
+  }
+}
+
+// ===================== INIT =====================
+// Limpa cache antigo se existir dados da versão anterior (sem modelo de parcelas)
+(function migrateIfNeeded() {
+  try {
+    const s = localStorage.getItem('meuf_state');
+    if (s) {
+      const p = JSON.parse(s);
+      const hasOldData = p.transacoes?.some(t => t._origem === 'carga_inicial' && t.compraId === undefined);
+      if (hasOldData) { localStorage.removeItem('meuf_state'); }
+    }
+  } catch(e) { localStorage.removeItem('meuf_state'); }
+})();
+
+loadState();
+seedIfEmpty();
+
+// ---- CARGA INICIAL: dados reais do Daniel ----
+(function injectRealData() {
+
+  // 1. Ajusta conta Mercado Pago
+  const mpConta = STATE.contas.find(c => c.banco === 'mercadopago');
+  if (mpConta) { mpConta.saldo = 0; mpConta.nome = 'Mercado Pago'; mpConta.tipo = 'digital'; }
+
+  // 2. Configura cartão Mercado Pago
+  const mpCartao = STATE.cartoes.find(k => k.banco === 'mercadopago');
+  if (mpCartao) {
+    mpCartao.nome = 'Mercado Pago';
+    mpCartao.limite = 1600;
+    mpCartao.fechamento = 29;
+    mpCartao.venc = 4; // vence 4 de maio
+    mpCartao.fatura = 0;
+  }
+
+  // 3. Lança transações — apenas se ainda não existirem
+  const jaTemDados = STATE.transacoes.some(t => t._origem === 'carga_inicial');
+  if (!jaTemDados && mpCartao) {
+    const kid = mpCartao.id;
+    const cid_rossie = uid();
+    const lancamentos = [
+      // ── Fatura MARÇO (já paga em 30/03) ──
+      { desc: 'Google (1)', valor: 18.00, data: '2026-03-18', cat: 'streaming', parcelas: 1, totalCompra: 18.00, paga: true },
+      { desc: 'Google (2)', valor: 18.00, data: '2026-03-24', cat: 'streaming', parcelas: 1, totalCompra: 18.00, paga: true },
+      { desc: 'Netflix', valor: 59.90, data: '2026-03-07', cat: 'streaming', parcelas: 1, totalCompra: 59.90, paga: true },
+      { desc: 'LATAM — Rossie (1/4)', valor: 371.10, data: '2026-03-01', cat: 'transporte', compraId: cid_rossie, parcelas: 4, parcelaNum: 1, totalCompra: 1484.40, paga: true },
+      // ── Fatura ABRIL (aberta, vence 04/05) ──
+      { desc: 'LATAM — Rossie (2/4)', valor: 371.10, data: '2026-04-01', cat: 'transporte', compraId: cid_rossie, parcelas: 4, parcelaNum: 2, totalCompra: 1484.40 },
+      { desc: 'Netflix', valor: 59.90, data: '2026-04-03', cat: 'streaming', parcelas: 1, totalCompra: 59.90 },
+      { desc: 'Impressora térmica de etiquetas', valor: 154.99, data: '2026-04-05', cat: 'outros', parcelas: 1, totalCompra: 154.99 },
+      { desc: 'Presente aniversário — Caio (afilhado)', valor: 129.90, data: '2026-04-06', cat: 'lazer', parcelas: 1, totalCompra: 129.90 },
+      { desc: 'Refil impressora térmica', valor: 76.18, data: '2026-04-10', cat: 'outros', parcelas: 1, totalCompra: 76.18 },
+      // ── Parcelas futuras ──
+      { desc: 'LATAM — Rossie (3/4)', valor: 371.10, data: '2026-05-01', cat: 'transporte', compraId: cid_rossie, parcelas: 4, parcelaNum: 3, totalCompra: 1484.40 },
+      { desc: 'LATAM — Rossie (4/4)', valor: 371.10, data: '2026-06-01', cat: 'transporte', compraId: cid_rossie, parcelas: 4, parcelaNum: 4, totalCompra: 1484.40 },
+    ];
+    lancamentos.forEach(l => {
+      STATE.transacoes.push({
+        id: uid(), desc: l.desc, valor: l.valor,
+        tipo: 'credit_card', conta: kid, cat: l.cat,
+        data: l.data, _origem: 'carga_inicial',
+        compraId: l.compraId || uid(),
+        parcelas: l.parcelas || 1,
+        parcelaNum: l.parcelaNum || 1,
+        totalCompra: l.totalCompra || l.valor,
+        paga: l.paga || false
+      });
+    });
+  }
+
+  // ── C6 Bank ──────────────────────────────────────────────────────────
+  const c6Conta = STATE.contas.find(c => c.banco === 'c6');
+  if (c6Conta) { c6Conta.saldo = 13.11; c6Conta.nome = 'C6 Bank'; }
+
+  const c6Cartao = STATE.cartoes.find(k => k.banco === 'c6');
+  if (c6Cartao) {
+    c6Cartao.nome = 'C6 Carbono';
+    c6Cartao.limite = 5779.96;
+    c6Cartao.fechamento = 25;
+    c6Cartao.venc = 4;
+    c6Cartao.fatura = 0;
+  }
+
+  const jaTemC6 = STATE.transacoes.some(t => t._origem === 'carga_c6' && t.desc && t.desc.includes('18'));
+  if (!jaTemC6 && c6Cartao) {
+    const kid = c6Cartao.id;
+    const cid_divida = uid();   // dívida Rossie 17x
+    const cid_pass_c6 = uid();  // passagem Rossie C6 4x
+
+    const lc6 = [
+      // ── Março (fatura fechada 25/03, já paga) ──
+      { desc: 'HBO Max (último)', valor: 29.90, data: '2026-03-26', cat: 'streaming', parcelas:1, totalCompra:29.90, paga:true },
+      { desc: 'Globoplay', valor: 17.90, data: '2026-03-26', cat: 'streaming', parcelas:1, totalCompra:17.90, paga:true },
+      { desc: 'Amazon Prime Canais (último)', valor: 29.90, data: '2026-03-27', cat: 'streaming', parcelas:1, totalCompra:29.90, paga:true },
+      { desc: 'Amazon Prime Canais — cobrança', valor: 29.90, data: '2026-03-29', cat: 'streaming', parcelas:1, totalCompra:29.90, paga:true },
+      { desc: 'Amazon Prime Canais — ESTORNO', valor: -29.90, data: '2026-03-29', cat: 'streaming', parcelas:1, totalCompra:-29.90, paga:true },
+      { desc: 'Uber', valor: 14.98, data: '2026-03-29', cat: 'transporte', parcelas:1, totalCompra:14.98, paga:true },
+      { desc: 'Uber', valor: 23.98, data: '2026-03-29', cat: 'transporte', parcelas:1, totalCompra:23.98, paga:true },
+      { desc: 'Uber', valor: 31.98, data: '2026-03-29', cat: 'transporte', parcelas:1, totalCompra:31.98, paga:true },
+      { desc: 'Amazon Prime anuidade', valor: 166.80, data: '2026-03-30', cat: 'streaming', parcelas:1, totalCompra:166.80, paga:true },
+      // Passagem Rossie C6 — parcela 1/4 (compra 04/03, fecha em março)
+      { desc: 'Passagem Rossie C6 (1/4)', valor: 158.25, data: '2026-03-04', cat: 'transporte', compraId: cid_pass_c6, parcelas:4, parcelaNum:1, totalCompra:633.00, paga:true },
+      // Dívida Rossie parcelas já pagas (1 a 13) — compra mar/2025, 18x, parcela 14 = abr/2026
+      ...[...Array(13)].map((_,i) => {
+        const ano = 2025 + Math.floor((2 + i) / 12);
+        const mes = ((2 + i) % 12) + 1;
+        return { desc: `Dívida Rossie (${i+1}/18)`, valor: 634.96, data: `${ano}-${String(mes).padStart(2,'0')}-11`, cat: 'outros', compraId: cid_divida, parcelas:18, parcelaNum:i+1, totalCompra:11429.28, paga:true };
+      }),
+
+      // ── Abril (fatura aberta, vence 04/05) ──
+      { desc: 'Dívida Rossie (14/18)', valor: 634.96, data: '2026-04-11', cat: 'outros', compraId: cid_divida, parcelas:18, parcelaNum:14, totalCompra:11429.28 },
+      { desc: 'Passagem Rossie C6 (2/4)', valor: 158.25, data: '2026-04-04', cat: 'transporte', compraId: cid_pass_c6, parcelas:4, parcelaNum:2, totalCompra:633.00 },
+      { desc: '3 Marias Castigo — agência Malu', valor: 1200.00, data: '2026-04-01', cat: 'outros', parcelas:1, totalCompra:1200.00 },
+      { desc: 'Uber', valor: 32.98, data: '2026-04-03', cat: 'transporte', parcelas:1, totalCompra:32.98 },
+      { desc: 'Fone Bluetooth', valor: 134.10, data: '2026-04-03', cat: 'roupas', parcelas:1, totalCompra:134.10 },
+      { desc: 'Uber', valor: 19.99, data: '2026-04-04', cat: 'transporte', parcelas:1, totalCompra:19.99 },
+      { desc: 'Uber', valor: 47.98, data: '2026-04-04', cat: 'transporte', parcelas:1, totalCompra:47.98 },
+      { desc: 'Uber', valor: 22.02, data: '2026-04-04', cat: 'transporte', parcelas:1, totalCompra:22.02 },
+      { desc: 'Uber', valor: 32.99, data: '2026-04-04', cat: 'transporte', parcelas:1, totalCompra:32.99 },
+      { desc: 'Tinder mensalidade (último)', valor: 35.99, data: '2026-04-07', cat: 'lazer', parcelas:1, totalCompra:35.99 },
+      { desc: 'Uber', valor: 31.98, data: '2026-04-09', cat: 'transporte', parcelas:1, totalCompra:31.98 },
+      { desc: 'Uber', valor: 39.98, data: '2026-04-09', cat: 'transporte', parcelas:1, totalCompra:39.98 },
+      { desc: 'Uber', valor: 17.98, data: '2026-04-11', cat: 'transporte', parcelas:1, totalCompra:17.98 },
+      { desc: 'Uber', valor: 18.99, data: '2026-04-11', cat: 'transporte', parcelas:1, totalCompra:18.99 },
+      { desc: 'Uber', valor: 22.96, data: '2026-04-11', cat: 'transporte', parcelas:1, totalCompra:22.96 },
+      { desc: 'Uber', valor: 30.98, data: '2026-04-11', cat: 'transporte', parcelas:1, totalCompra:30.98 },
+
+      // ── Parcelas futuras ──
+      { desc: 'Passagem Rossie C6 (3/4)', valor: 158.25, data: '2026-05-04', cat: 'transporte', compraId: cid_pass_c6, parcelas:4, parcelaNum:3, totalCompra:633.00 },
+      { desc: 'Passagem Rossie C6 (4/4)', valor: 158.25, data: '2026-06-04', cat: 'transporte', compraId: cid_pass_c6, parcelas:4, parcelaNum:4, totalCompra:633.00 },
+      { desc: 'Dívida Rossie (15/18)', valor: 634.96, data: '2026-05-11', cat: 'outros', compraId: cid_divida, parcelas:18, parcelaNum:15, totalCompra:11429.28 },
+      { desc: 'Dívida Rossie (16/18)', valor: 634.96, data: '2026-06-11', cat: 'outros', compraId: cid_divida, parcelas:18, parcelaNum:16, totalCompra:11429.28 },
+      { desc: 'Dívida Rossie (17/18)', valor: 634.96, data: '2026-07-11', cat: 'outros', compraId: cid_divida, parcelas:18, parcelaNum:17, totalCompra:11429.28 },
+      { desc: 'Dívida Rossie (18/18)', valor: 634.96, data: '2026-08-11', cat: 'outros', compraId: cid_divida, parcelas:18, parcelaNum:18, totalCompra:11429.28 },
+    ];
+
+    lc6.forEach(l => {
+      STATE.transacoes.push({
+        id: uid(), desc: l.desc, valor: l.valor,
+        tipo: 'credit_card', conta: kid, cat: l.cat,
+        data: l.data, _origem: 'carga_c6',
+        compraId: l.compraId || uid(),
+        parcelas: l.parcelas || 1,
+        parcelaNum: l.parcelaNum || 1,
+        totalCompra: l.totalCompra || l.valor,
+        paga: l.paga || false
+      });
+    });
+  }
+  // ── Santander ─────────────────────────────────────────────────────────
+  const sanConta = STATE.contas.find(c => c.banco === 'santander');
+  if (sanConta) { sanConta.saldo = 18757.06; sanConta.nome = 'Santander'; }
+
+  // ── Sam's Club ────────────────────────────────────────────────────────
+  const samsCartao = STATE.cartoes.find(k => k.banco === 'sams');
+  if (samsCartao) {
+    samsCartao.nome = "Sam's Club";
+    samsCartao.limite = 6620;
+    samsCartao.fechamento = 26;
+    samsCartao.venc = 3;
+    samsCartao.fatura = 0;
+  }
+
+  const jaTemSams = STATE.transacoes.some(t => t._origem === 'carga_sams');
+  if (!jaTemSams && samsCartao) {
+    const kid = samsCartao.id;
+    const cid_bsas1 = uid();
+    const cid_bsas2 = uid();
+    const ls = [];
+    for (let i = 0; i < 10; i++) {
+      const ano = 2026 + Math.floor((2 + i) / 12);
+      const mes  = (2 + i) % 12 + 1;
+      const data = `${ano}-${String(mes).padStart(2,'0')}-23`;
+      const paga = i === 0;
+      ls.push({ desc: `Buenos Aires — Viagem Malu (${i+1}/10)`, valor: 410.00, data, cat: 'lazer', compraId: cid_bsas1, parcelas:10, parcelaNum:i+1, totalCompra:4100, paga });
+      ls.push({ desc: `Buenos Aires — Viagem Malu pkg (${i+1}/10)`, valor: 199.90, data, cat: 'lazer', compraId: cid_bsas2, parcelas:10, parcelaNum:i+1, totalCompra:1999, paga });
+    }
+    ls.forEach(l => STATE.transacoes.push({
+      id: uid(), desc: l.desc, valor: l.valor,
+      tipo: 'credit_card', conta: kid, cat: l.cat,
+      data: l.data, _origem: 'carga_sams',
+      compraId: l.compraId, parcelas: l.parcelas,
+      parcelaNum: l.parcelaNum, totalCompra: l.totalCompra,
+      paga: l.paga || false
+    }));
+  }
+
+  // ── Zaffari ───────────────────────────────────────────────────────────
+  const zafCartao = STATE.cartoes.find(k => k.banco === 'zaffari');
+  if (zafCartao) {
+    zafCartao.nome = 'Zaffari Card';
+    zafCartao.limite = 6879.60;
+    zafCartao.fechamento = 25;
+    zafCartao.venc = 5;
+    zafCartao.fatura = 0;
+  }
+
+  const jaTemZaf = STATE.transacoes.some(t => t._origem === 'carga_zaffari');
+  if (!jaTemZaf && zafCartao) {
+    const kid = zafCartao.id;
+    const mercados = [
+      { data: '2026-04-01', valor: 181.48 },
+      { data: '2026-04-04', valor: 320.52 },
+      { data: '2026-04-06', valor: 144.22 },
+      { data: '2026-04-08', valor: 61.90  },
+      { data: '2026-04-10', valor: 50.13  },
+      { data: '2026-04-11', valor: 507.12 },
+      { data: '2026-04-12', valor: 28.75  },
+    ];
+    mercados.forEach(m => STATE.transacoes.push({
+      id: uid(), desc: 'Mercado — Zaffari', valor: m.valor,
+      tipo: 'credit_card', conta: kid, cat: 'mercado',
+      data: m.data, _origem: 'carga_zaffari',
+      compraId: uid(), parcelas: 1, parcelaNum: 1,
+      totalCompra: m.valor, paga: false
+    }));
+  }
+
+  // Limite comprometido calculado dinamicamente por calcLimiteComprometido()
+
+})();
+
+saveState();
+renderDashboard();
+loadAgenda();
+
+// Set today's date
+document.getElementById('tx-data').value = now();
+</script>
+</body>
+</html>
